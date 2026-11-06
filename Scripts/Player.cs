@@ -3,8 +3,6 @@ using Godot;
 
 public partial class Player : CharacterBody2D
 {
-    private const float PushDelay = 0.2f;
-
     [Export]
     public float Speed { get; set; } = 80.0f;
 
@@ -74,7 +72,7 @@ public partial class Player : CharacterBody2D
 
         _pushTimer += delta;
 
-        if (_pushTimer < PushDelay)
+        if (_pushTimer < target.PushDelaySeconds)
         {
             return;
         }
