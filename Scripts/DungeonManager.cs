@@ -1,0 +1,375 @@
+
+using Godot;
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using ZeldaRemake.Models;
+
+public partial class DungeonManager : Node2D
+{
+    private const int RoomWidth = 256;
+    private const int RoomHeight = 176;
+    private const int HudHeight = 64;
+
+    private const float TransitionDuration = 0.6f;
+
+    [Export]
+    public PackedScene RoomScene { get; set; } = null!;
+
+    [Export]
+    public string DungeonPath { get; set; } = "res://Data/Dungeons/dungeon01.json";
+
+    private Node2D _rooms = null!;
+    private Player _player = null!;
+    private Camera2D _camera = null!;
+
+    private readonly Dictionary<string, RoomData> _roomLookup = new();
+
+    private DungeonState _state = new();
+    private string _dungeonId = string.Empty;
+
+    private RoomData _currentRoom = null!;
+    private bool _isTransitioning;
+
+    public override void _Ready()
+    {
+        SetPhysicsProcess(false);
+
+        _rooms = GetNode<Node2D>("Rooms");
+        _player = GetNode<Player>("Player");
+        _camera = GetNode<Camera2D>("Camera2D");
+
+        if (RoomScene is null)
+        {
+            GD.PushError("Room Scene has not been assigned.");
+            return;
+        }
+
+        try
+        {
+            LoadDungeon(DungeonPath);
+            SetPhysicsProcess(true);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"Failed to load dungeon: {exception}");
+        }
+    }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        if (!@event.IsActionPressed("save_game"))
+        {
+            return;
+        }
+
+        try
+        {
+            SaveGame();
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"Failed to save game: {exception}");
+        }
+
+        GetViewport().SetInputAsHandled();
+    }
+
+
+    private void LoadDungeon(string path)
+    {
+        if (!Godot.FileAccess.FileExists(path))
+        {
+            throw new InvalidOperationException(
+                $"Dungeon configuration not found: {path}"
+            );
+        }
+
+        var json = Godot.FileAccess.GetFileAsString(path);
+
+        var dungeon = JsonSerializer.Deserialize<DungeonData>(
+            json,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }
+        ) ?? throw new InvalidOperationException(
+            "Dungeon configuration is invalid."
+        );
+
+        _roomLookup.Clear();
+
+        foreach (var roomData in dungeon.Rooms)
+        {
+            if (!_roomLookup.TryAdd(roomData.Id, roomData))
+            {
+                throw new InvalidOperationException(
+                    $"Duplicate room ID: {roomData.Id}"
+                );
+            }
+        }
+
+        if (!_roomLookup.TryGetValue(
+            dungeon.StartingRoom,
+            out var startingRoom))
+        {
+            throw new InvalidOperationException(
+                $"Starting room not found: {dungeon.StartingRoom}"
+            );
+        }
+
+        _dungeonId = dungeon.Id;
+
+        // Load a saved game, if one exists.
+        var save = DungeonSaveService.Load(_dungeonId);
+
+        _state = new DungeonState();
+
+        _state.Changed += AutoSave;
+
+        if (save is not null)
+        {
+            _state.Restore(save);
+        }
+
+        // Instantiate the dungeon rooms after restoring state.
+        foreach (var roomData in dungeon.Rooms)
+        {
+            CreateRoom(roomData);
+        }
+
+        // Always start at the dungeon's configured entrance.
+        _currentRoom = startingRoom;
+
+        var origin = GetRoomOrigin(startingRoom);
+
+        _player.Position = origin + new Vector2(128, 88);
+
+        _camera.Position = GetCameraPosition(startingRoom);
+        _camera.MakeCurrent();
+
+        GD.Print(
+            $"Loaded dungeon '{dungeon.Name}' with {dungeon.Rooms.Count} rooms."
+        );
+    }
+
+    private void AutoSave()
+    {
+        if (_isTransitioning || string.IsNullOrEmpty(_dungeonId))
+        {
+            return;
+        }
+
+        try
+        {
+            SaveGame();
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"Auto-save failed: {exception}");
+        }
+    }
+
+    private void SaveGame()
+    {
+        if (_isTransitioning || string.IsNullOrEmpty(_dungeonId))
+        {
+            return;
+        }
+
+        // Save position relative to the current room.
+        var position = _player.Position - GetRoomOrigin(_currentRoom);
+
+        var save = new DungeonSaveData
+        {
+            DungeonId = _dungeonId
+        };
+
+        _state.CopyTo(save);
+
+        DungeonSaveService.Save(save);
+    }
+
+    private void CreateRoom(RoomData roomData)
+    {
+        var room = RoomScene.Instantiate<Room>();
+
+        room.Name = roomData.Id;
+        room.Position = GetRoomOrigin(roomData);
+
+        _rooms.AddChild(room);
+
+        room.LoadLayout(roomData, _state);
+
+        GD.Print($"Created room: {roomData.Id}");
+    }
+
+    private static Vector2 GetRoomOrigin(RoomData room)
+    {
+        return new Vector2(
+            room.Position.X * RoomWidth,
+            room.Position.Y * RoomHeight + HudHeight
+        );
+    }
+
+    private static Vector2 GetCameraPosition(RoomData room)
+    {
+        return new Vector2(
+            room.Position.X * RoomWidth + RoomWidth / 2.0f,
+            room.Position.Y * RoomHeight + 120
+        );
+    }
+
+    public override void _PhysicsProcess(double delta)
+    {
+        if (_isTransitioning)
+        {
+            return;
+        }
+
+        var origin = GetRoomOrigin(_currentRoom);
+
+        if (_player.Position.X >= origin.X + RoomWidth)
+        {
+            TryTransition("east", new Vector2I(1, 0));
+        }
+        else if (_player.Position.X <= origin.X)
+        {
+            TryTransition("west", new Vector2I(-1, 0));
+        }
+        else if (_player.Position.Y >= origin.Y + RoomHeight)
+        {
+            TryTransition("south", new Vector2I(0, 1));
+        }
+        else if (_player.Position.Y <= origin.Y)
+        {
+            TryTransition("north", new Vector2I(0, -1));
+        }
+    }
+
+    private void TryTransition(string direction, Vector2I offset)
+    {
+        foreach (var door in _currentRoom.Doors)
+        {
+            if (!string.Equals(
+                    door.Direction,
+                    direction,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!_state.IsDoorOpen(_currentRoom.Id, door))
+            {
+                return;
+            }
+
+            if (!_roomLookup.TryGetValue(
+                    door.Destination,
+                    out var destination))
+            {
+                GD.PushError(
+                    $"Destination room not found: {door.Destination}"
+                );
+
+                return;
+            }
+
+            var expectedX = _currentRoom.Position.X + offset.X;
+            var expectedY = _currentRoom.Position.Y + offset.Y;
+
+            if (destination.Position.X != expectedX ||
+                destination.Position.Y != expectedY)
+            {
+                GD.PushError(
+                    $"Room '{destination.Id}' is not adjacent " +
+                    $"to '{_currentRoom.Id}' in direction {direction}."
+                );
+
+                return;
+            }
+
+            StartTransition(destination, direction);
+            return;
+        }
+    }
+
+    private void StartTransition(
+        RoomData destination,
+        string direction
+    )
+    {
+        _isTransitioning = true;
+
+        // Temporarily disable player-controlled movement.
+        _player.SetPhysicsProcess(false);
+        _player.Velocity = Vector2.Zero;
+
+        var origin = GetRoomOrigin(destination);
+        var currentPosition = _player.Position;
+
+        const float entryOffset = 24.0f;
+
+        // Only change the axis we're travelling along.
+        var playerTarget = direction switch
+        {
+            "east" => new Vector2(
+                origin.X + entryOffset,
+                currentPosition.Y
+            ),
+
+            "west" => new Vector2(
+                origin.X + RoomWidth - entryOffset,
+                currentPosition.Y
+            ),
+
+            "south" => new Vector2(
+                currentPosition.X,
+                origin.Y + entryOffset
+            ),
+
+            "north" => new Vector2(
+                currentPosition.X,
+                origin.Y + RoomHeight - entryOffset
+            ),
+
+            _ => throw new InvalidOperationException(
+                $"Invalid transition direction: {direction}"
+            )
+        };
+
+        var cameraTarget = GetCameraPosition(destination);
+
+        var tween = CreateTween();
+
+        tween.SetParallel(true);
+        tween.SetTrans(Tween.TransitionType.Linear);
+
+        tween.TweenProperty(
+            _camera,
+            "position",
+            cameraTarget,
+            TransitionDuration
+        );
+
+        tween.TweenProperty(
+            _player,
+            "position",
+            playerTarget,
+            TransitionDuration
+        );
+
+
+        tween.Finished += () =>
+        {
+            _currentRoom = destination;
+
+            _player.Velocity = Vector2.Zero;
+            _player.SetPhysicsProcess(true);
+
+            _isTransitioning = false;
+
+            GD.Print($"Entered room: {destination.Id}");
+        };
+    }
+}

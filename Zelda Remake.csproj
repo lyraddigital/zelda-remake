@@ -1,0 +1,12 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <RootNamespace>ZeldaRemake</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Scenes\**" />
+    <EmbeddedResource Remove="Scenes\**" />
+  </ItemGroup>
+</Project>

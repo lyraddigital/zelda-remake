@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://cmire2wjjivbu"]
+
+[ext_resource type="Script" uid="uid://b4or37fyombmh" path="res://Scripts/DungeonManager.cs" id="1_kln2b"]
+[ext_resource type="PackedScene" uid="uid://cfjqhy3mo01cf" path="res://Scenes/Room.tscn" id="1_uu6xs"]
+[ext_resource type="PackedScene" uid="uid://dwly5fh4m3ey" path="res://Scenes/Player.tscn" id="2_r0du0"]
+
+[node name="Main" type="Node2D" unique_id=2006822600]
+script = ExtResource("1_kln2b")
+RoomScene = ExtResource("1_uu6xs")
+
+[node name="Rooms" type="Node2D" parent="." unique_id=581134097]
+
+[node name="Player" parent="." unique_id=2093875538 instance=ExtResource("2_r0du0")]
+position = Vector2(128, 152)
+
+[node name="Camera2D" type="Camera2D" parent="." unique_id=1695926901]
+position = Vector2(128, 120)
+
+[node name="Hud" type="CanvasLayer" parent="." unique_id=1891178265]
+
+[node name="ColorRect" type="ColorRect" parent="Hud" unique_id=296345007]
+offset_right = 256.0
+offset_bottom = 64.0
+mouse_filter = 2
+color = Color(0.06666667, 0.06666667, 0.06666667, 1)

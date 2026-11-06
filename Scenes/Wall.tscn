@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://87umt8bv3b8v"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xrivr"]
+size = Vector2(16, 16)
+
+[node name="Wall" type="StaticBody2D" unique_id=745474221]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=539035903]
+shape = SubResource("RectangleShape2D_xrivr")
+
+[node name="Border" type="ColorRect" parent="." unique_id=641712762]
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+mouse_filter = 2
+color = Color(0.33333334, 0.33333334, 0.33333334, 1)
+
+[node name="Interior" type="ColorRect" parent="Border" unique_id=1069763930]
+layout_mode = 0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 15.0
+offset_bottom = 15.0
+color = Color(0.6666667, 0.6666667, 0.6666667, 1)

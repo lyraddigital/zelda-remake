@@ -1,0 +1,24 @@
+# Godot 4 generated cache
+.godot/
+*.translation
+
+# .NET build output
+**/bin/
+**/obj/
+.mono/
+
+# Visual Studio and other IDEs
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.csproj.user
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Generated game builds
+/build/
+ /exports/

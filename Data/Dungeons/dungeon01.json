@@ -1,0 +1,125 @@
+
+{
+  "version": 1,
+  "id": "dungeon01",
+  "name": "The First Dungeon",
+  "startingRoom": "entrance",
+  "rooms": [
+	{
+	  "id": "entrance",
+	  "name": "Entrance",
+	  "position": {
+		"x": 0,
+		"y": 0
+	  },
+	  "defaultFloor": "grass",
+	  "walls": [
+		"################",
+		"################",
+		"##............##",
+		"##..###.......##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##......##....##",
+		"##............##",
+		"################",
+        "################"
+	  ],
+	  "doors": [
+		{
+		  "direction": "east",
+		  "destination": "east_hall",
+		  "type": "locked"
+		},
+		{
+		  "direction": "south",
+		  "destination": "south_chamber",
+		  "type": "open"
+		}
+	  ],	  
+	  "objects": [
+		  {
+			"id": "key_01",
+			"type": "key",
+			"x": 6,
+			"y": 4,
+			"properties": {}
+		  },
+		  {
+			"id": "block_01",
+			"type": "pushable_block",
+			"x": 7,
+			"y": 4,
+			"properties": {
+			  "pushDirection": "north"
+			}
+	  	  }
+	  ],
+	  "enemies": []
+	},
+	{
+	  "id": "east_hall",
+	  "name": "East Hall",
+	  "position": {
+		"x": 1,
+		"y": 0
+	  },
+	  "defaultFloor": "stone",
+	  "walls": [
+		"################",
+		"################",
+		"##............##",
+		"##........###.##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##..##........##",
+		"##............##",
+		"################",
+        "################"
+	  ],
+	  "doors": [
+		{
+		  "direction": "west",
+		  "destination": "entrance",
+		  "type": "open"
+		}
+	  ],
+	  "objects": [],
+	  "enemies": []
+	},	
+	{
+	  "id": "south_chamber",
+	  "name": "South Chamber",
+	  "position": {
+		"x": 0,
+		"y": 1
+	  },
+	  "defaultFloor": "stone",
+	  "walls": [
+		"################",
+		"################",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"##............##",
+		"################",
+	    "################"
+	  ],
+	  "doors": [
+		{
+		  "direction": "north",
+		  "destination": "entrance",
+		  "type": "open"
+		}
+	  ],
+	  "objects": [],
+	  "enemies": []
+	}
+
+  ]
+}

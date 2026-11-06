@@ -1,0 +1,53 @@
+[gd_scene format=3 uid="uid://chnc05gtd6fhi"]
+
+[ext_resource type="Script" uid="uid://beds32cmq5od" path="res://Scripts/Door.cs" id="1_8m564"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xrivr"]
+size = Vector2(4, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_8m564"]
+size = Vector2(4, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_f31k6"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_13qdw"]
+size = Vector2(24, 48)
+
+[node name="VerticalDoor" type="Node2D" unique_id=544462355]
+script = ExtResource("1_8m564")
+
+[node name="Frame" type="ColorRect" parent="." unique_id=2068573709]
+offset_left = -16.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.4627451, 0.33333334, 0.22352941, 1)
+
+[node name="Opening" type="ColorRect" parent="." unique_id=2105193702]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0.1254902, 0.1254902, 0.1254902, 1)
+
+[node name="FrameSides" type="StaticBody2D" parent="." unique_id=1959331305]
+
+[node name="LeftSide" type="CollisionShape2D" parent="FrameSides" unique_id=116885309]
+position = Vector2(-14, 0)
+shape = SubResource("RectangleShape2D_xrivr")
+
+[node name="RightSide" type="CollisionShape2D" parent="FrameSides" unique_id=1976504522]
+position = Vector2(14, 0)
+shape = SubResource("RectangleShape2D_8m564")
+
+[node name="Blocker" type="StaticBody2D" parent="." unique_id=855591172]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker" unique_id=762452636]
+shape = SubResource("RectangleShape2D_f31k6")
+
+[node name="UnlockArea" type="Area2D" parent="." unique_id=1234331149]
+collision_layer = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="UnlockArea" unique_id=1373770648]
+shape = SubResource("RectangleShape2D_13qdw")

@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://cfjqhy3mo01cf"]
+
+[ext_resource type="Script" uid="uid://bg8p1tikiws23" path="res://Scripts/Room.cs" id="1_nn86p"]
+[ext_resource type="PackedScene" uid="uid://bbutmrr4nhtit" path="res://Scenes/SlideDoor.tscn" id="2_uj218"]
+[ext_resource type="PackedScene" uid="uid://chnc05gtd6fhi" path="res://Scenes/VerticalDoor.tscn" id="3_a2si3"]
+[ext_resource type="TileSet" uid="uid://cnflnjck6u1lm" path="res://Assets/DungeonTiles.tres" id="3_uj218"]
+[ext_resource type="PackedScene" uid="uid://1apak1wc4nii" path="res://Scenes/KeyPickup.tscn" id="4_aaq88"]
+[ext_resource type="PackedScene" uid="uid://bqsb8ojuux6yd" path="res://Scenes/PushableBlock.tscn" id="5_7gm67"]
+
+[node name="Room" type="Node2D" unique_id=286385966]
+script = ExtResource("1_nn86p")
+SideDoorScene = ExtResource("2_uj218")
+VerticalDoorScene = ExtResource("3_a2si3")
+KeyScene = ExtResource("4_aaq88")
+PushableBlockScene = ExtResource("5_7gm67")
+
+[node name="Floors" type="TileMapLayer" parent="." unique_id=1106062575]
+texture_filter = 1
+tile_set = ExtResource("3_uj218")
+
+[node name="Walls" type="TileMapLayer" parent="." unique_id=198881284]
+texture_filter = 1
+tile_set = ExtResource("3_uj218")
+
+[node name="Doors" type="Node2D" parent="." unique_id=1511837907]
+
+[node name="Objects" type="Node2D" parent="." unique_id=791050350]

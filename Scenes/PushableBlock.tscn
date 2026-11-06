@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://bqsb8ojuux6yd"]
+
+[ext_resource type="Script" uid="uid://bcw7t4k5upuoc" path="res://Scripts/PushableBlock.cs" id="1_sligm"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_o3a68"]
+size = Vector2(16, 16)
+
+[node name="PushableBlock" type="AnimatableBody2D" unique_id=159386313]
+script = ExtResource("1_sligm")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1248954678]
+shape = SubResource("RectangleShape2D_o3a68")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=1794562206]
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+color = Color(0.72156864, 0.5254902, 0.29411766, 1)
