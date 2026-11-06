@@ -1,6 +1,7 @@
 
 using Godot;
 using System;
+using System.Text.Json;
 using ZeldaRemake.Models;
 
 public partial class Room : Node2D
@@ -227,10 +228,31 @@ public partial class Room : Node2D
                         block.Position = position;
                         container.AddChild(block);
 
-                        block.Configure(direction);
+                        block.Configure(
+                            direction,
+                            GetOptionalFloat(data, "pushDelaySeconds"),
+                            GetOptionalFloat(data, "pushDurationSeconds")
+                        );
                         break;
                     }
             }
         }
+    }
+
+    private static float? GetOptionalFloat(RoomObjectData data, string propertyName)
+    {
+        if (!data.Properties.TryGetValue(propertyName, out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetSingle(out var number))
+        {
+            throw new InvalidOperationException(
+                $"Object '{data.Id}' requires a numeric value for '{propertyName}'."
+            );
+        }
+
+        return number;
     }
 }
