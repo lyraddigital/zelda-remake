@@ -13,9 +13,14 @@ public sealed class DungeonState
         StringComparer.OrdinalIgnoreCase
     );
 
+    private readonly HashSet<string> _openShutters = new(
+        StringComparer.OrdinalIgnoreCase
+    );
+
     public int Keys { get; private set; }
 
     public event Action? Changed;
+    public event Action<string, string>? ShutterOpened;
 
     public bool IsObjectCollected(string roomId, string objectId)
     {
@@ -42,19 +47,15 @@ public sealed class DungeonState
 
     public bool IsDoorOpen(string roomId, DoorData door)
     {
-        if (string.Equals(
-                door.Type,
-                "open",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
+        var doorId = GetDoorId(roomId, door);
 
-        return string.Equals(
-                door.Type,
-                "locked",
-                StringComparison.OrdinalIgnoreCase)
-            && _unlockedDoors.Contains(GetDoorId(roomId, door));
+        return door.Type.ToLowerInvariant() switch
+        {
+            "open" => true,
+            "locked" => _unlockedDoors.Contains(doorId),
+            "shutter" => _openShutters.Contains(doorId),
+            _ => false
+        };
     }
 
     public bool TryUnlockDoor(string roomId, DoorData door)
@@ -83,6 +84,27 @@ public sealed class DungeonState
         _unlockedDoors.Add(doorId);
 
         Changed?.Invoke();
+
+        return true;
+    }
+
+
+    public bool TryOpenShutter(string roomId, DoorData door)
+    {
+        if (!string.Equals(
+            door.Type,
+            "shutter",
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (!_openShutters.Add(GetDoorId(roomId, door)))
+        {
+            return false;
+        }
+
+        ShutterOpened?.Invoke(roomId, door.Direction);
 
         return true;
     }

@@ -7,16 +7,17 @@ public partial class PushableBlock : AnimatableBody2D
     private const float TileSize = 16.0f;
 
     [Export]
-    public float PushDelaySeconds { get; set; } = 1.0f;
+    public float PushDelaySeconds { get; set; } = 0.27f;
 
     [Export]
-    public float PushDurationSeconds { get; set; } = 1.0f;
+    public float PushDurationSeconds { get; set; } = 0.53f;
 
     private CollisionShape2D _collision = null!;
 
     private Vector2 _allowedDirection = Vector2.Zero;
     private bool _hasMoved;
     private bool _isMoving;
+    public event Action? Pushed;
 
     public override void _Ready()
     {
@@ -25,7 +26,7 @@ public partial class PushableBlock : AnimatableBody2D
         );
     }
 
-    public void Configure(string pushDirection, float? pushDelaySeconds = null, float? pushDurationSeconds = null)
+    public void Configure(string pushDirection)
     {
         _allowedDirection = pushDirection.ToLowerInvariant() switch
         {
@@ -38,19 +39,6 @@ public partial class PushableBlock : AnimatableBody2D
                 $"Invalid push direction: {pushDirection}"
             )
         };
-
-        PushDelaySeconds = pushDelaySeconds ?? PushDelaySeconds;
-        PushDurationSeconds = pushDurationSeconds ?? PushDurationSeconds;
-
-        if (!float.IsFinite(PushDelaySeconds) || PushDelaySeconds < 0.0f)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pushDelaySeconds), "Push delay must be non-negative.");
-        }
-
-        if (!float.IsFinite(PushDurationSeconds) || PushDurationSeconds <= 0.0f)
-        {
-            throw new ArgumentOutOfRangeException(nameof(pushDurationSeconds), "Push duration must be greater than zero.");
-        }
     }
 
     public bool TryPush(Vector2 direction, Player player)
@@ -80,7 +68,10 @@ public partial class PushableBlock : AnimatableBody2D
         // Check the destination against physical obstacles.
         var query = new PhysicsShapeQueryParameters2D
         {
-            Shape = _collision.Shape,
+            Shape = new RectangleShape2D
+            {
+                Size = new Vector2(15, 15)
+            },
             Transform = new Transform2D(0.0f, destination),
             CollisionMask = CollisionMask,
             CollideWithBodies = true,
@@ -124,6 +115,7 @@ public partial class PushableBlock : AnimatableBody2D
         tween.Finished += () =>
         {
             _isMoving = false;
+            Pushed?.Invoke();
             GD.Print("Pushable block moved.");
         };
 

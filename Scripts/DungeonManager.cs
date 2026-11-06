@@ -125,12 +125,12 @@ public partial class DungeonManager : Node2D
 
         _state = new DungeonState();
 
-        _state.Changed += AutoSave;
-
         if (save is not null)
         {
             _state.Restore(save);
         }
+
+        _state.Changed += AutoSave;
 
         // Instantiate the dungeon rooms after restoring state.
         foreach (var roomData in dungeon.Rooms)

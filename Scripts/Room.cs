@@ -203,7 +203,6 @@ public partial class Room : Node2D
                         key.Configure(state, room.Id, data.Id);
                         break;
                     }
-
                 case "pushable_block":
                     {
                         if (PushableBlockScene is null)
@@ -215,10 +214,7 @@ public partial class Room : Node2D
 
                         var direction = "any";
 
-                        if (data.Properties.TryGetValue(
-                            "pushDirection",
-                            out var value
-                        ))
+                        if (data.Properties.TryGetValue("pushDirection", out var value))
                         {
                             direction = value.GetString() ?? "any";
                         }
@@ -228,31 +224,49 @@ public partial class Room : Node2D
                         block.Position = position;
                         container.AddChild(block);
 
-                        block.Configure(
-                            direction,
-                            GetOptionalFloat(data, "pushDelaySeconds"),
-                            GetOptionalFloat(data, "pushDurationSeconds")
-                        );
+                        block.Configure(direction);
+
+                        // Connect the block to a shutter door, if configured.
+                        if (data.Properties.TryGetValue("opensDoor", out var doorValue))
+                        {
+                            if (doorValue.ValueKind != JsonValueKind.String)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Block '{data.Id}' requires a string opensDoor value."
+                                );
+                            }
+
+                            var doorDirection = doorValue.GetString();
+
+                            var targetDoor = room.Doors.Find(door =>
+                                string.Equals(
+                                    door.Direction,
+                                    doorDirection,
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            );
+
+                            if (targetDoor is null ||
+                                !string.Equals(
+                                    targetDoor.Type,
+                                    "shutter",
+                                    StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw new InvalidOperationException(
+                                    $"Block '{data.Id}' targets an invalid shutter door."
+                                );
+                            }
+
+                            block.Pushed += () =>
+                            {
+                                state.TryOpenShutter(room.Id, targetDoor);
+                            };
+                        }
+
                         break;
                     }
+
             }
         }
-    }
-
-    private static float? GetOptionalFloat(RoomObjectData data, string propertyName)
-    {
-        if (!data.Properties.TryGetValue(propertyName, out var value))
-        {
-            return null;
-        }
-
-        if (value.ValueKind != JsonValueKind.Number || !value.TryGetSingle(out var number))
-        {
-            throw new InvalidOperationException(
-                $"Object '{data.Id}' requires a numeric value for '{propertyName}'."
-            );
-        }
-
-        return number;
     }
 }

@@ -11,9 +11,16 @@ script = ExtResource("1_sligm")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1248954678]
 shape = SubResource("RectangleShape2D_o3a68")
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1794562206]
+[node name="Outer" type="ColorRect" parent="." unique_id=1794562206]
 offset_left = -8.0
 offset_top = -8.0
 offset_right = 8.0
 offset_bottom = 8.0
-color = Color(0.72156864, 0.5254902, 0.29411766, 1)
+color = Color(0.18039216, 0.11764706, 0.039215688, 1)
+
+[node name="Inner" type="ColorRect" parent="." unique_id=1250888171]
+offset_left = -7.0
+offset_top = -7.0
+offset_right = 7.0
+offset_bottom = 7.0
+color = Color(0.6271264, 0.42577326, 0.08520418, 1)

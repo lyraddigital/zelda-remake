@@ -1,5 +1,6 @@
 
 using Godot;
+using System;
 using ZeldaRemake.Models;
 
 public partial class Door : Node2D
@@ -7,7 +8,6 @@ public partial class Door : Node2D
     private ColorRect _opening = null!;
     private CollisionShape2D _collision = null!;
     private Area2D _unlockArea = null!;
-
     private DungeonState _state = null!;
     private DoorData _data = null!;
 
@@ -25,6 +25,14 @@ public partial class Door : Node2D
         _unlockArea.BodyEntered += OnBodyEntered;
     }
 
+    public override void _ExitTree()
+    {
+        if (_state is not null)
+        {
+            _state.ShutterOpened -= OnShutterOpened;
+        }
+    }
+
     public void Configure(
         DoorData data,
         DungeonState state,
@@ -34,6 +42,8 @@ public partial class Door : Node2D
         _data = data;
         _state = state;
         _roomId = roomId;
+
+        _state.ShutterOpened += OnShutterOpened;
 
         UpdateAppearance();
     }
@@ -61,6 +71,24 @@ public partial class Door : Node2D
             $"Door unlocked. Keys remaining: {_state.Keys}"
         );
     }
+
+    private void OnShutterOpened(string roomId, string direction)
+    {
+        if (!string.Equals(
+                roomId,
+                _roomId,
+                StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(
+                direction,
+                _data.Direction,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        UpdateAppearance();
+    }
+
 
     private void UpdateAppearance()
     {
