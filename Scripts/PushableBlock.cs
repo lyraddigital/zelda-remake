@@ -5,7 +5,12 @@ using System;
 public partial class PushableBlock : AnimatableBody2D
 {
     private const float TileSize = 16.0f;
-    private const float PushDuration = 0.15f;
+
+    [Export]
+    public float PushDelaySeconds { get; set; } = 1.0f;
+
+    [Export]
+    public float PushDurationSeconds { get; set; } = 1.0f;
 
     private CollisionShape2D _collision = null!;
 
@@ -20,7 +25,7 @@ public partial class PushableBlock : AnimatableBody2D
         );
     }
 
-    public void Configure(string pushDirection)
+    public void Configure(string pushDirection, float? pushDelaySeconds = null, float? pushDurationSeconds = null)
     {
         _allowedDirection = pushDirection.ToLowerInvariant() switch
         {
@@ -33,6 +38,19 @@ public partial class PushableBlock : AnimatableBody2D
                 $"Invalid push direction: {pushDirection}"
             )
         };
+
+        PushDelaySeconds = pushDelaySeconds ?? PushDelaySeconds;
+        PushDurationSeconds = pushDurationSeconds ?? PushDurationSeconds;
+
+        if (!float.IsFinite(PushDelaySeconds) || PushDelaySeconds < 0.0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pushDelaySeconds), "Push delay must be non-negative.");
+        }
+
+        if (!float.IsFinite(PushDurationSeconds) || PushDurationSeconds <= 0.0f)
+        {
+            throw new ArgumentOutOfRangeException(nameof(pushDurationSeconds), "Push duration must be greater than zero.");
+        }
     }
 
     public bool TryPush(Vector2 direction, Player player)
@@ -100,7 +118,7 @@ public partial class PushableBlock : AnimatableBody2D
             this,
             "position",
             Position + movement,
-            PushDuration
+            PushDurationSeconds
         );
 
         tween.Finished += () =>

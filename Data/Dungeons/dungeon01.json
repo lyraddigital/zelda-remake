@@ -52,7 +52,9 @@
 			"x": 7,
 			"y": 4,
 			"properties": {
-			  "pushDirection": "north"
+			  "pushDirection": "north",
+			  "pushDelaySeconds": 1.0,
+			  "pushDurationSeconds": 1.0
 			}
 	  	  }
 	  ],
