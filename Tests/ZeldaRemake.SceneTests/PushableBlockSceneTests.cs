@@ -36,4 +36,81 @@ public class PushableBlockSceneTests
             instance?.Free();
         }
     }
+
+
+    [TestCase]
+    public void TryPush_WhenDirectionIsNotAllowed_ReturnsFalse()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(
+            "res://Scenes/PushableBlock.tscn"
+        );
+
+        var block = runner.Scene() as PushableBlock;
+
+        using var player = new Player();
+
+        block!.Configure("north");
+
+        // Act
+        var result = block.TryPush(
+            Vector2.Left,
+            player
+        );
+
+        // Assert
+        AssertBool(result).IsFalse();
+    }
+
+    [TestCase]
+    public void TryPush_WhenPushingIsDisabled_ReturnsFalse()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(
+            "res://Scenes/PushableBlock.tscn"
+        );
+
+        var block = runner.Scene() as PushableBlock;
+
+        using var player = new Player();
+
+        block!.Configure("north");
+        block!.DisablePushing();
+
+        // Act
+        var result = block!.TryPush(
+            Vector2.Up,
+            player
+        );
+
+        // Assert
+        AssertBool(result).IsFalse();
+    }
+
+    [TestCase]
+    public void Reset_WhenPushingIsDisabled_DoesNotEnablePushing()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(
+            "res://Scenes/PushableBlock.tscn"
+        );
+
+        var block = runner.Scene() as PushableBlock;
+
+        using var player = new Player();
+
+        block!.Configure("north");
+        block!.DisablePushing();
+
+        // Act
+        block!.Reset();
+
+        var result = block!.TryPush(
+            Vector2.Up,
+            player
+        );
+
+        // Assert
+        AssertBool(result).IsFalse();
+    }
 }

@@ -10,6 +10,7 @@
 
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TestFramework>GdUnit4</TestFramework>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\SceneTests.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
