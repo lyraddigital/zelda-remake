@@ -1,0 +1,22 @@
+
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://Scenes/PushableBlock.tscn" id="1_block"]
+[ext_resource type="PackedScene" path="res://Scenes/Player.tscn" id="2_player"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_wall"]
+size = Vector2(16, 16)
+
+[node name="PushableBlockFixture" type="Node2D"]
+
+[node name="Block" parent="." instance=ExtResource("1_block")]
+position = Vector2(80, 80)
+
+[node name="Player" parent="." instance=ExtResource("2_player")]
+position = Vector2(80, 112)
+
+[node name="Wall" type="StaticBody2D" parent="."]
+position = Vector2(160, 80)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Wall"]
+shape = SubResource("RectangleShape2D_wall")

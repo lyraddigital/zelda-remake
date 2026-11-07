@@ -24,4 +24,12 @@
     <Compile Remove=".godot/**/*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Fixtures\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="fixtures\PushableBlockFixture.tscn" />
+  </ItemGroup>
+
 </Project>
