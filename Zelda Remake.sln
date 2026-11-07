@@ -1,12 +1,17 @@
-﻿Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.12.12328.396 insiders
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zelda Remake", "Zelda Remake.csproj", "{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeldaRemake.Tests", "Tests\ZeldaRemake.Tests\ZeldaRemake.Tests.csproj", "{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-	Debug|Any CPU = Debug|Any CPU
-	ExportDebug|Any CPU = ExportDebug|Any CPU
-	ExportRelease|Any CPU = ExportRelease|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		ExportDebug|Any CPU = ExportDebug|Any CPU
+		ExportRelease|Any CPU = ExportRelease|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -15,5 +20,14 @@ Global
 		{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
 		{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
 		{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.ExportDebug|Any CPU.ActiveCfg = Release|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.ExportDebug|Any CPU.Build.0 = Release|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
