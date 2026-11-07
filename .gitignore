@@ -25,3 +25,16 @@ Thumbs.db
 
 # Test results
 **/TestResults/
+
+# GdUnit4 scene test runtime
+Tests/ZeldaRemake.SceneTests/.godot/
+Tests/ZeldaRemake.SceneTests/gdunit4_testadapter_v5/
+
+# Local resource junctions
+Tests/ZeldaRemake.SceneTests/Assets/
+Tests/ZeldaRemake.SceneTests/Data/
+Tests/ZeldaRemake.SceneTests/Geometry/
+Tests/ZeldaRemake.SceneTests/Models/
+Tests/ZeldaRemake.SceneTests/Scenes/
+Tests/ZeldaRemake.SceneTests/Scripts/
+Tests/ZeldaRemake.SceneTests/Services/
