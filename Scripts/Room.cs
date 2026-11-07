@@ -1,6 +1,7 @@
 
 using Godot;
 using System;
+using System.Collections.Generic;
 using System.Text.Json;
 using ZeldaRemake.Models;
 
@@ -18,6 +19,9 @@ public partial class Room : Node2D
     [Export]
     public PackedScene PushableBlockScene { get; set; } = null!;
 
+    [Export]
+    public PackedScene StaircaseScene { get; set; } = null!;
+
     private const int TileSourceId = 0;
     private static readonly Vector2I GrassTile = new(0, 0);
     private static readonly Vector2I WallTile = new(1, 0);
@@ -25,6 +29,7 @@ public partial class Room : Node2D
 
     private TileMapLayer _floors = null!;
     private TileMapLayer _walls = null!;
+    private readonly List<PushableBlock> _resettableBlocks = [];
 
     public override void _Ready()
     {
@@ -102,6 +107,15 @@ public partial class Room : Node2D
         LoadObjects(room, state);
     }
 
+    public void ResetTemporaryState(RoomData room, DungeonState state)
+    {
+        foreach (var block in _resettableBlocks)
+        {
+            block.Reset();
+        }
+
+        state.ResetShutters(room.Id, room.Doors);
+    }
 
     private void LoadDoors(RoomData room, DungeonState state)
     {
@@ -166,6 +180,8 @@ public partial class Room : Node2D
     {
         var container = GetNode<Node2D>("Objects");
 
+        _resettableBlocks.Clear();
+
         foreach (var child in container.GetChildren())
         {
             container.RemoveChild(child);
@@ -185,7 +201,7 @@ public partial class Room : Node2D
                     {
                         if (state.IsObjectCollected(room.Id, data.Id))
                         {
-                            continue;
+                            break;
                         }
 
                         if (KeyScene is null)
@@ -201,8 +217,29 @@ public partial class Room : Node2D
                         container.AddChild(key);
 
                         key.Configure(state, room.Id, data.Id);
+
                         break;
                     }
+
+                case "staircase":
+                    {
+                        if (StaircaseScene is null)
+                        {
+                            throw new InvalidOperationException(
+                                "StaircaseScene has not been assigned."
+                            );
+                        }
+
+                        var staircase = StaircaseScene.Instantiate<Staircase>();
+
+                        staircase.Position = position;
+                        container.AddChild(staircase);
+
+                        staircase.Configure(state, room.Id, data.Id);
+
+                        break;
+                    }
+
                 case "pushable_block":
                     {
                         if (PushableBlockScene is null)
@@ -212,11 +249,28 @@ public partial class Room : Node2D
                             );
                         }
 
-                        var direction = "any";
+                        var direction = GetOptionalString(
+                            data,
+                            "pushDirection"
+                        ) ?? "any";
 
-                        if (data.Properties.TryGetValue("pushDirection", out var value))
+                        var opensDoor = GetOptionalString(
+                            data,
+                            "opensDoor"
+                        );
+
+                        var revealsStaircase = GetOptionalString(
+                            data,
+                            "revealsStaircase"
+                        );
+
+                        if (opensDoor is not null &&
+                            revealsStaircase is not null)
                         {
-                            direction = value.GetString() ?? "any";
+                            throw new InvalidOperationException(
+                                $"Block '{data.Id}' cannot open a door " +
+                                "and reveal a staircase simultaneously."
+                            );
                         }
 
                         var block = PushableBlockScene.Instantiate<PushableBlock>();
@@ -226,22 +280,13 @@ public partial class Room : Node2D
 
                         block.Configure(direction);
 
-                        // Connect the block to a shutter door, if configured.
-                        if (data.Properties.TryGetValue("opensDoor", out var doorValue))
+                        // Shutter-door puzzle.
+                        if (opensDoor is not null)
                         {
-                            if (doorValue.ValueKind != JsonValueKind.String)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Block '{data.Id}' requires a string opensDoor value."
-                                );
-                            }
-
-                            var doorDirection = doorValue.GetString();
-
                             var targetDoor = room.Doors.Find(door =>
                                 string.Equals(
                                     door.Direction,
-                                    doorDirection,
+                                    opensDoor,
                                     StringComparison.OrdinalIgnoreCase
                                 )
                             );
@@ -263,10 +308,97 @@ public partial class Room : Node2D
                             };
                         }
 
+                        // Permanent staircase puzzle.
+                        if (revealsStaircase is not null)
+                        {
+                            var staircaseData = room.Objects.Find(obj =>
+                                string.Equals(
+                                    obj.Id,
+                                    revealsStaircase,
+                                    StringComparison.OrdinalIgnoreCase
+                                ) &&
+                                string.Equals(
+                                    obj.Type,
+                                    "staircase",
+                                    StringComparison.OrdinalIgnoreCase
+                                )
+                            );
+
+                            if (staircaseData is null ||
+                                staircaseData.X != data.X ||
+                                staircaseData.Y != data.Y)
+                            {
+                                throw new InvalidOperationException(
+                                    $"Block '{data.Id}' must reference a " +
+                                    "staircase at its starting position."
+                                );
+                            }
+
+                            if (string.Equals(
+                                direction,
+                                "any",
+                                StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw new InvalidOperationException(
+                                    "Staircase blocks require a fixed push direction."
+                                );
+                            }
+
+                            block.Pushed += () =>
+                            {
+                                state.TryCompletePuzzle(
+                                    room.Id,
+                                    revealsStaircase
+                                );
+                            };
+
+                            if (state.IsPuzzleCompleted(
+                                room.Id,
+                                revealsStaircase))
+                            {
+                                block.RestoreCompletedPosition();
+                            }
+                        }
+                        else
+                        {
+                            // Ordinary and shutter blocks reset on room exit.
+                            _resettableBlocks.Add(block);
+                        }
+
                         break;
                     }
-
             }
         }
+    }
+
+    private static string? GetOptionalString(
+        RoomObjectData data,
+        string propertyName)
+    {
+        if (!data.Properties.TryGetValue(
+            propertyName,
+            out var value))
+        {
+            return null;
+        }
+
+        if (value.ValueKind != JsonValueKind.String)
+        {
+            throw new InvalidOperationException(
+                $"Object '{data.Id}' requires a string " +
+                $"for '{propertyName}'."
+            );
+        }
+
+        var result = value.GetString();
+
+        if (string.IsNullOrWhiteSpace(result))
+        {
+            throw new InvalidOperationException(
+                $"Object '{data.Id}' has an empty '{propertyName}'."
+            );
+        }
+
+        return result;
     }
 }

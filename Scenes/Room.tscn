@@ -6,6 +6,7 @@
 [ext_resource type="TileSet" uid="uid://cnflnjck6u1lm" path="res://Assets/DungeonTiles.tres" id="3_uj218"]
 [ext_resource type="PackedScene" uid="uid://1apak1wc4nii" path="res://Scenes/KeyPickup.tscn" id="4_aaq88"]
 [ext_resource type="PackedScene" uid="uid://bqsb8ojuux6yd" path="res://Scenes/PushableBlock.tscn" id="5_7gm67"]
+[ext_resource type="PackedScene" uid="uid://bvb8gf8un6jsn" path="res://Scenes/Staircase.tscn" id="6_xebr5"]
 
 [node name="Room" type="Node2D" unique_id=286385966]
 script = ExtResource("1_nn86p")
@@ -13,6 +14,7 @@ SideDoorScene = ExtResource("2_uj218")
 VerticalDoorScene = ExtResource("3_a2si3")
 KeyScene = ExtResource("4_aaq88")
 PushableBlockScene = ExtResource("5_7gm67")
+StaircaseScene = ExtResource("6_xebr5")
 
 [node name="Floors" type="TileMapLayer" parent="." unique_id=1106062575]
 texture_filter = 1

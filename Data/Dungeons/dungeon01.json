@@ -55,7 +55,24 @@
 			  "pushDirection": "north",
 			  "opensDoor": "south"
 			}
-	  	  }
+		  },
+			{
+			  "id": "block_02",
+			  "type": "pushable_block",
+			  "x": 11,
+			  "y": 6,
+			  "properties": {
+				"pushDirection": "west",
+				"revealsStaircase": "staircase_01"
+			  }
+			},
+			{
+			  "id": "staircase_01",
+			  "type": "staircase",
+			  "x": 11,
+			  "y": 6,
+			  "properties": {}
+			}
 	  ],
 	  "enemies": []
 	},

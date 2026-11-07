@@ -30,6 +30,8 @@ public partial class DungeonManager : Node2D
 
     private RoomData _currentRoom = null!;
     private bool _isTransitioning;
+    private RoomData? _pendingEntryRoom;
+    private DoorData? _pendingEntryShutter;
 
     public override void _Ready()
     {
@@ -177,9 +179,6 @@ public partial class DungeonManager : Node2D
             return;
         }
 
-        // Save position relative to the current room.
-        var position = _player.Position - GetRoomOrigin(_currentRoom);
-
         var save = new DungeonSaveData
         {
             DungeonId = _dungeonId
@@ -227,6 +226,8 @@ public partial class DungeonManager : Node2D
             return;
         }
 
+        TryCloseEntryShutter();
+
         var origin = GetRoomOrigin(_currentRoom);
 
         if (_player.Position.X >= origin.X + RoomWidth)
@@ -245,6 +246,43 @@ public partial class DungeonManager : Node2D
         {
             TryTransition("north", new Vector2I(0, -1));
         }
+    }
+
+    private void TryCloseEntryShutter()
+    {
+        var room = _pendingEntryRoom;
+        var door = _pendingEntryShutter;
+
+        if (room is null || door is null)
+        {
+            return;
+        }
+
+        var origin = GetRoomOrigin(room);
+        var playerPosition = _player.Position - origin;
+
+        // Wait until the entire 12x12 player collider
+        // is clear of the doorway's blocker.
+        var hasClearedDoor = door.Direction.ToLowerInvariant() switch
+        {
+            "north" => playerPosition.Y > 38.0f,
+            "south" => playerPosition.Y < RoomHeight - 38.0f,
+            "west" => playerPosition.X > 38.0f,
+            "east" => playerPosition.X < RoomWidth - 38.0f,
+            _ => throw new InvalidOperationException(
+                $"Invalid door direction: {door.Direction}"
+            )
+        };
+
+        if (!hasClearedDoor)
+        {
+            return;
+        }
+
+        _state.ResetShutters(room.Id, [door]);
+
+        _pendingEntryRoom = null;
+        _pendingEntryShutter = null;
     }
 
     private void TryTransition(string direction, Vector2I offset)
@@ -294,14 +332,62 @@ public partial class DungeonManager : Node2D
         }
     }
 
+
     private void StartTransition(
         RoomData destination,
         string direction
     )
     {
+        var departingRoom = _currentRoom;
+
+        // Any previously pending entry belongs to the
+        // room we're now leaving.
+        _pendingEntryRoom = null;
+        _pendingEntryShutter = null;
+
+        // Find the doorway on the opposite side
+        // of the destination room.
+        var entryDirection = direction switch
+        {
+            "north" => "south",
+            "south" => "north",
+            "east" => "west",
+            "west" => "east",
+            _ => throw new InvalidOperationException(
+                $"Invalid direction: {direction}"
+            )
+        };
+
+        var entryDoor = destination.Doors.Find(door =>
+            string.Equals(
+                door.Direction,
+                entryDirection,
+                StringComparison.OrdinalIgnoreCase
+            )
+        );
+
+        // A closed incoming shutter needs to allow passage.
+        DoorData? temporaryEntryShutter = null;
+
+        if (entryDoor is not null &&
+            string.Equals(
+                entryDoor.Type,
+                "shutter",
+                StringComparison.OrdinalIgnoreCase
+            ) &&
+            !_state.IsDoorOpen(destination.Id, entryDoor))
+        {
+            temporaryEntryShutter = entryDoor;
+
+            _state.TryOpenShutter(
+                destination.Id,
+                entryDoor
+            );
+        }
+
         _isTransitioning = true;
 
-        // Temporarily disable player-controlled movement.
+        // Pause player-controlled movement during scrolling.
         _player.SetPhysicsProcess(false);
         _player.Velocity = Vector2.Zero;
 
@@ -359,10 +445,27 @@ public partial class DungeonManager : Node2D
             TransitionDuration
         );
 
-
         tween.Finished += () =>
         {
+            // The player has finished leaving the old room.
+            var previousRoom = _rooms.GetNode<Room>(
+                departingRoom.Id
+            );
+
+            previousRoom.ResetTemporaryState(
+                departingRoom,
+                _state
+            );
+
             _currentRoom = destination;
+
+            // If the destination shutter was temporarily
+            // opened, close it once the player moves clear.
+            if (temporaryEntryShutter is not null)
+            {
+                _pendingEntryRoom = destination;
+                _pendingEntryShutter = temporaryEntryShutter;
+            }
 
             _player.Velocity = Vector2.Zero;
             _player.SetPhysicsProcess(true);
