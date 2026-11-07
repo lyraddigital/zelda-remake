@@ -22,3 +22,6 @@ Thumbs.db
 # Generated game builds
 /build/
  /exports/
+
+# Test results
+**/TestResults/
