@@ -322,13 +322,10 @@ public partial class Room : Node2D
                                 )
                             );
 
-                            if (staircaseData is null ||
-                                staircaseData.X != data.X ||
-                                staircaseData.Y != data.Y)
+                            if (staircaseData is null)
                             {
                                 throw new InvalidOperationException(
-                                    $"Block '{data.Id}' must reference a " +
-                                    "staircase at its starting position."
+                                    $"Block '{data.Id}' must reference a staircase"
                                 );
                             }
 
@@ -344,6 +341,8 @@ public partial class Room : Node2D
 
                             block.Pushed += () =>
                             {
+                                block.DisablePushing();
+
                                 state.TryCompletePuzzle(
                                     room.Id,
                                     revealsStaircase
@@ -354,14 +353,13 @@ public partial class Room : Node2D
                                 room.Id,
                                 revealsStaircase))
                             {
-                                block.RestoreCompletedPosition();
+                                block.DisablePushing();
                             }
                         }
-                        else
-                        {
-                            // Ordinary and shutter blocks reset on room exit.
-                            _resettableBlocks.Add(block);
-                        }
+
+                        // Every block returns to its starting position.
+                        // Completed staircase blocks remain unpushable.
+                        _resettableBlocks.Add(block);
 
                         break;
                     }

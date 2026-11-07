@@ -16,6 +16,7 @@ public partial class PushableBlock : AnimatableBody2D
 
     private Vector2 _allowedDirection = Vector2.Zero;
     private bool _hasMoved;
+    private bool _pushDisabled;
     private bool _isMoving;
     private Vector2 _initialPosition;
     private Tween? _movementTween;
@@ -56,6 +57,11 @@ public partial class PushableBlock : AnimatableBody2D
         _isMoving = false;
     }
 
+    public void DisablePushing()
+    {
+        _pushDisabled = true;
+    }
+
     public void RestoreCompletedPosition()
     {
         if (_allowedDirection == Vector2.Zero)
@@ -76,7 +82,7 @@ public partial class PushableBlock : AnimatableBody2D
 
     public bool TryPush(Vector2 direction, Player player)
     {
-        if (_hasMoved || _isMoving)
+        if (_hasMoved || _isMoving || _pushDisabled)
         {
             return false;
         }
