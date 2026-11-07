@@ -107,14 +107,12 @@ public partial class Room : Node2D
         LoadObjects(room, state);
     }
 
-    public void ResetTemporaryState(RoomData room, DungeonState state)
+    public void ResetTemporaryState()
     {
         foreach (var block in _resettableBlocks)
         {
             block.Reset();
         }
-
-        state.ResetShutters(room.Id, room.Doors);
     }
 
     private void LoadDoors(RoomData room, DungeonState state)

@@ -367,22 +367,22 @@ public partial class DungeonManager : Node2D
         );
 
         // A closed incoming shutter needs to allow passage.
-        DoorData? temporaryEntryShutter = null;
+        DoorData? entryShutter = null;
 
         if (entryDoor is not null &&
             string.Equals(
                 entryDoor.Type,
                 "shutter",
-                StringComparison.OrdinalIgnoreCase
-            ) &&
-            !_state.IsDoorOpen(destination.Id, entryDoor))
+                StringComparison.OrdinalIgnoreCase))
         {
-            temporaryEntryShutter = entryDoor;
+            entryShutter = entryDoor;
 
-            _state.TryOpenShutter(
-                destination.Id,
-                entryDoor
-            );
+            // Normally the shutter is already open when
+            // returning through it. This is a safeguard.
+            if (!_state.IsDoorOpen(destination.Id, entryDoor))
+            {
+                _state.TryOpenShutter(destination.Id, entryDoor);
+            }
         }
 
         _isTransitioning = true;
@@ -452,19 +452,14 @@ public partial class DungeonManager : Node2D
                 departingRoom.Id
             );
 
-            previousRoom.ResetTemporaryState(
-                departingRoom,
-                _state
-            );
+            previousRoom.ResetTemporaryState();
 
             _currentRoom = destination;
 
-            // If the destination shutter was temporarily
-            // opened, close it once the player moves clear.
-            if (temporaryEntryShutter is not null)
+            if (entryShutter is not null)
             {
                 _pendingEntryRoom = destination;
-                _pendingEntryShutter = temporaryEntryShutter;
+                _pendingEntryShutter = entryShutter;
             }
 
             _player.Velocity = Vector2.Zero;
