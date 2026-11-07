@@ -17,6 +17,8 @@ public partial class PushableBlock : AnimatableBody2D
     private Vector2 _allowedDirection = Vector2.Zero;
     private bool _hasMoved;
     private bool _isMoving;
+    private Vector2 _initialPosition;
+    private Tween? _movementTween;
     public event Action? Pushed;
 
     public override void _Ready()
@@ -24,6 +26,8 @@ public partial class PushableBlock : AnimatableBody2D
         _collision = GetNode<CollisionShape2D>(
             "CollisionShape2D"
         );
+
+        _initialPosition = Position;
     }
 
     public void Configure(string pushDirection)
@@ -39,6 +43,35 @@ public partial class PushableBlock : AnimatableBody2D
                 $"Invalid push direction: {pushDirection}"
             )
         };
+    }
+
+    public void Reset()
+    {
+        _movementTween?.Kill();
+        _movementTween = null;
+
+        Position = _initialPosition;
+
+        _hasMoved = false;
+        _isMoving = false;
+    }
+
+    public void RestoreCompletedPosition()
+    {
+        if (_allowedDirection == Vector2.Zero)
+        {
+            throw new InvalidOperationException(
+                "A permanent staircase block requires a fixed push direction."
+            );
+        }
+
+        _movementTween?.Kill();
+        _movementTween = null;
+
+        Position = _initialPosition + _allowedDirection * TileSize;
+
+        _hasMoved = true;
+        _isMoving = false;
     }
 
     public bool TryPush(Vector2 direction, Player player)
@@ -99,6 +132,8 @@ public partial class PushableBlock : AnimatableBody2D
 
         var tween = CreateTween();
 
+        _movementTween = tween;
+
         tween.SetProcessMode(
             Tween.TweenProcessMode.Physics
         );
@@ -116,6 +151,9 @@ public partial class PushableBlock : AnimatableBody2D
         {
             _isMoving = false;
             Pushed?.Invoke();
+
+            _movementTween = null;
+
             GD.Print("Pushable block moved.");
         };
 

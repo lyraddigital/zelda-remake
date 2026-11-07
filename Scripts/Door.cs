@@ -30,6 +30,7 @@ public partial class Door : Node2D
         if (_state is not null)
         {
             _state.ShutterOpened -= OnShutterOpened;
+            _state.ShutterClosed -= OnShutterOpened;
         }
     }
 
@@ -44,6 +45,7 @@ public partial class Door : Node2D
         _roomId = roomId;
 
         _state.ShutterOpened += OnShutterOpened;
+        _state.ShutterClosed += OnShutterOpened;
 
         UpdateAppearance();
     }

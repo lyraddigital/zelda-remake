@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://bvb8gf8un6jsn"]
+
+[ext_resource type="Script" uid="uid://dj33fuk2vb70g" path="res://Scripts/Staircase.cs" id="1_rejx4"]
+
+[node name="Staircase" type="AnimatableBody2D" unique_id=1760801831]
+script = ExtResource("1_rejx4")
+
+[node name="Opening" type="ColorRect" parent="." unique_id=992284558]
+offset_left = -8.0
+offset_top = -8.0
+offset_right = 8.0
+offset_bottom = 8.0
+color = Color(0.1254902, 0.1254902, 0.1254902, 1)
+
+[node name="Step1" type="ColorRect" parent="." unique_id=300656388]
+offset_left = -6.0
+offset_top = -5.0
+offset_right = 6.0
+offset_bottom = -3.0
+color = Color(0.6039216, 0.57254905, 0.47843137, 1)
+
+[node name="Step2" type="ColorRect" parent="." unique_id=1585231242]
+offset_left = -6.0
+offset_right = 6.0
+offset_bottom = 2.0
+color = Color(0.6039216, 0.57254905, 0.47843137, 1)
+
+[node name="Step3" type="ColorRect" parent="." unique_id=493991519]
+offset_left = -6.0
+offset_top = 5.0
+offset_right = 6.0
+offset_bottom = 7.0
+color = Color(0.6039216, 0.57254905, 0.47843137, 1)

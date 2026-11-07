@@ -17,10 +17,15 @@ public sealed class DungeonState
         StringComparer.OrdinalIgnoreCase
     );
 
+    private readonly HashSet<string> _completedPuzzles = new(
+        StringComparer.OrdinalIgnoreCase
+    );
+
     public int Keys { get; private set; }
 
     public event Action? Changed;
     public event Action<string, string>? ShutterOpened;
+    public event Action<string, string>? ShutterClosed;
 
     public bool IsObjectCollected(string roomId, string objectId)
     {
@@ -56,6 +61,32 @@ public sealed class DungeonState
             "shutter" => _openShutters.Contains(doorId),
             _ => false
         };
+    }
+
+
+    public bool IsPuzzleCompleted(string roomId, string puzzleId)
+    {
+        return _completedPuzzles.Contains($"{roomId}:{puzzleId}");
+    }
+
+    public bool TryCompletePuzzle(string roomId, string puzzleId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId) ||
+            string.IsNullOrWhiteSpace(puzzleId))
+        {
+            throw new ArgumentException(
+                "Room ID and puzzle ID are required."
+            );
+        }
+
+        if (!_completedPuzzles.Add($"{roomId}:{puzzleId}"))
+        {
+            return false;
+        }
+
+        Changed?.Invoke();
+
+        return true;
     }
 
     public bool TryUnlockDoor(string roomId, DoorData door)
@@ -109,12 +140,33 @@ public sealed class DungeonState
         return true;
     }
 
+    public void ResetShutters(string roomId, IEnumerable<DoorData> doors)
+    {
+        foreach (var door in doors)
+        {
+            if (!string.Equals(
+                door.Type,
+                "shutter",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!_openShutters.Remove(GetDoorId(roomId, door)))
+            {
+                continue;
+            }
+
+            ShutterClosed?.Invoke(roomId, door.Direction);
+        }
+    }
 
     public void CopyTo(DungeonSaveData save)
     {
         save.Keys = Keys;
         save.CollectedObjects = [.. _collectedObjects];
         save.UnlockedDoors = [.. _unlockedDoors];
+        save.CompletedPuzzles = [.. _completedPuzzles];
     }
 
     public void Restore(DungeonSaveData save)
@@ -128,6 +180,7 @@ public sealed class DungeonState
 
         _collectedObjects.Clear();
         _unlockedDoors.Clear();
+        _completedPuzzles.Clear();
 
         foreach (var id in save.CollectedObjects)
         {
@@ -137,6 +190,11 @@ public sealed class DungeonState
         foreach (var id in save.UnlockedDoors)
         {
             _unlockedDoors.Add(id);
+        }
+
+        foreach (var id in save.CompletedPuzzles)
+        {
+            _completedPuzzles.Add(id);
         }
 
         Keys = save.Keys;

@@ -12,4 +12,6 @@ public sealed class DungeonSaveData
     public List<string> CollectedObjects { get; set; } = [];
 
     public List<string> UnlockedDoors { get; set; } = [];
+
+    public List<string> CompletedPuzzles { get; set; } = [];
 }
