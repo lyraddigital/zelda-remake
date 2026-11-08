@@ -1,6 +1,7 @@
 
 using Godot;
 using System;
+using System.Collections.Generic;
 using ZeldaRemake.Doors;
 using ZeldaRemake.Models;
 
@@ -15,6 +16,7 @@ public partial class Door : Node2D
     private IDoorBehavior _behavior = null!;
 
     private string _roomId = string.Empty;
+    private readonly HashSet<Player> _nearbyPlayers = [];
 
     public override void _Ready()
     {
@@ -26,6 +28,7 @@ public partial class Door : Node2D
 
         _unlockArea = GetNode<Area2D>("UnlockArea");
         _unlockArea.BodyEntered += OnBodyEntered;
+        _unlockArea.BodyExited += OnBodyExited;
     }
 
     public override void _ExitTree()
@@ -39,7 +42,18 @@ public partial class Door : Node2D
         if (_unlockArea is not null)
         {
             _unlockArea.BodyEntered -= OnBodyEntered;
+            _unlockArea.BodyExited -= OnBodyExited;
         }
+
+        foreach (var player in _nearbyPlayers)
+        {
+            if (GodotObject.IsInstanceValid(player))
+            {
+                player.UnregisterNearbyDoor(this);
+            }
+        }
+
+        _nearbyPlayers.Clear();
     }
 
     public void Configure(
@@ -78,12 +92,16 @@ public partial class Door : Node2D
         UpdateAppearance();
     }
 
+
     private void OnBodyEntered(Node2D body)
     {
-        if (body is not Player)
+        if (body is not Player player)
         {
             return;
         }
+
+        _nearbyPlayers.Add(player);
+        player.RegisterNearbyDoor(this);
 
         if (_behavior.IsOpen(_state, _roomId, _data))
         {
@@ -100,6 +118,17 @@ public partial class Door : Node2D
         GD.Print(
             $"Door unlocked. Keys remaining: {_state.Keys}"
         );
+    }
+
+    private void OnBodyExited(Node2D body)
+    {
+        if (body is not Player player)
+        {
+            return;
+        }
+
+        _nearbyPlayers.Remove(player);
+        player.UnregisterNearbyDoor(this);
     }
 
     private void OnShutterChanged(
@@ -138,5 +167,99 @@ public partial class Door : Node2D
             CollisionShape2D.PropertyName.Disabled,
             isOpen
         );
+    }
+
+
+    public bool TryGetAlignmentVelocity(
+        Vector2 playerPosition,
+        Vector2 movementDirection,
+        out Vector2 alignmentVelocity
+    )
+    {
+        alignmentVelocity = Vector2.Zero;
+
+        if (_state is null ||
+            _behavior is null ||
+            _data is null ||
+            !_behavior.IsOpen(_state, _roomId, _data))
+        {
+            return false;
+        }
+
+        var center = GlobalPosition;
+
+        switch (_data.Direction.ToLowerInvariant())
+        {
+            case "north":
+                if (movementDirection.Y >= 0 ||
+                    playerPosition.Y < center.Y)
+                {
+                    return false;
+                }
+
+                alignmentVelocity = new Vector2(
+                    DoorAlignment.GetLateralVelocity(
+                        playerPosition.X,
+                        center.X
+                    ),
+                    0
+                );
+
+                return true;
+
+            case "south":
+                if (movementDirection.Y <= 0 ||
+                    playerPosition.Y > center.Y)
+                {
+                    return false;
+                }
+
+                alignmentVelocity = new Vector2(
+                    DoorAlignment.GetLateralVelocity(
+                        playerPosition.X,
+                        center.X
+                    ),
+                    0
+                );
+
+                return true;
+
+            case "east":
+                if (movementDirection.X <= 0 ||
+                    playerPosition.X > center.X)
+                {
+                    return false;
+                }
+
+                alignmentVelocity = new Vector2(
+                    0,
+                    DoorAlignment.GetLateralVelocity(
+                        playerPosition.Y,
+                        center.Y
+                    )
+                );
+
+                return true;
+
+            case "west":
+                if (movementDirection.X >= 0 ||
+                    playerPosition.X < center.X)
+                {
+                    return false;
+                }
+
+                alignmentVelocity = new Vector2(
+                    0,
+                    DoorAlignment.GetLateralVelocity(
+                        playerPosition.Y,
+                        center.Y
+                    )
+                );
+
+                return true;
+
+            default:
+                return false;
+        }
     }
 }

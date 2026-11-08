@@ -1,5 +1,6 @@
 
 using Godot;
+using System.Collections.Generic;
 
 public partial class Player : CharacterBody2D
 {
@@ -9,6 +10,7 @@ public partial class Player : CharacterBody2D
     private PushableBlock? _pushTarget;
     private Vector2 _pushDirection;
     private float _pushTimer;
+    private readonly HashSet<Door> _nearbyDoors = [];
 
     public override void _Ready()
     {
@@ -26,11 +28,66 @@ public partial class Player : CharacterBody2D
             ? new Vector2(horizontal, 0)
             : new Vector2(0, vertical);
 
-        Velocity = direction * Speed;
+        var movementVelocity = direction * Speed;
+
+        if (direction != Vector2.Zero)
+        {
+            movementVelocity += GetDoorAlignmentVelocity(direction);
+        }
+
+        Velocity = movementVelocity.LimitLength(Speed);
 
         MoveAndSlide();
 
         HandlePush(direction, (float)delta);
+    }
+
+    public void RegisterNearbyDoor(Door door)
+    {
+        _nearbyDoors.Add(door);
+    }
+
+    public void UnregisterNearbyDoor(Door door)
+    {
+        _nearbyDoors.Remove(door);
+    }
+
+    private Vector2 GetDoorAlignmentVelocity(
+        Vector2 movementDirection
+    )
+    {
+        var closestDistance = float.PositiveInfinity;
+        var alignmentVelocity = Vector2.Zero;
+
+        foreach (var door in _nearbyDoors)
+        {
+            if (!GodotObject.IsInstanceValid(door))
+            {
+                continue;
+            }
+
+            if (!door.TryGetAlignmentVelocity(
+                    GlobalPosition,
+                    movementDirection,
+                    out var candidateVelocity))
+            {
+                continue;
+            }
+
+            var distance = GlobalPosition.DistanceSquaredTo(
+                door.GlobalPosition
+            );
+
+            if (distance >= closestDistance)
+            {
+                continue;
+            }
+
+            closestDistance = distance;
+            alignmentVelocity = candidateVelocity;
+        }
+
+        return alignmentVelocity;
     }
 
     private void HandlePush(Vector2 direction, float delta)
