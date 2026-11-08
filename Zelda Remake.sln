@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
-VisualStudioVersion = 18.12.12328.396 insiders
+VisualStudioVersion = 18.12.12328.396
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zelda Remake", "Zelda Remake.csproj", "{D0C9F026-BE5B-46A2-B2E2-44DDACE3D71D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeldaRemake.UnitTests", "Tests\ZeldaRemake.Tests\ZeldaRemake.UnitTests.csproj", "{2B199E47-A395-4D3B-B996-6BC90DCBE0B3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeldaRemake.SceneTests", "Tests\ZeldaRemake.SceneTests\ZeldaRemake.SceneTests.csproj", "{70F2C548-2FBE-4DAA-9BDD-C31997E926DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZeldaRemake.Core", "Core\ZeldaRemake.Core.csproj", "{8F0C3D99-0303-1371-4858-590A914B157C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +36,12 @@ Global
 		{70F2C548-2FBE-4DAA-9BDD-C31997E926DF}.ExportDebug|Any CPU.Build.0 = Release|Any CPU
 		{70F2C548-2FBE-4DAA-9BDD-C31997E926DF}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
 		{70F2C548-2FBE-4DAA-9BDD-C31997E926DF}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.ExportDebug|Any CPU.ActiveCfg = Release|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.ExportDebug|Any CPU.Build.0 = Release|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.ExportRelease|Any CPU.ActiveCfg = Release|Any CPU
+		{8F0C3D99-0303-1371-4858-590A914B157C}.ExportRelease|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

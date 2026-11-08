@@ -21,6 +21,9 @@ public partial class Room : Node2D
 
     [Export]
     public PackedScene StaircaseScene { get; set; } = null!;
+    private const int RoomWidthInTiles = 16;
+    private const int RoomHeightInTiles = 11;
+    private const int PerimeterThickness = 2;
 
     private const int TileSourceId = 0;
     private static readonly Vector2I GrassTile = new(0, 0);
@@ -39,68 +42,68 @@ public partial class Room : Node2D
 
     public void LoadLayout(RoomData room, DungeonState state)
     {
-        if (room.Walls.Length != 11)
-        {
-            throw new ArgumentException(
-                $"Room '{room.Id}' must contain 11 rows."
-            );
-        }
-
-        foreach (var row in room.Walls)
-        {
-            if (row.Length != 16)
-            {
-                throw new ArgumentException(
-                    $"Room '{room.Id}' contains a row that is not 16 tiles wide."
-                );
-            }
-        }
+        ValidateLayout(room);
 
         _floors.Clear();
         _walls.Clear();
 
-        var defaultFloor = string.Equals(
-            room.DefaultFloor,
-            "stone",
-            StringComparison.OrdinalIgnoreCase)
-            ? StoneTile
-            : GrassTile;
+        var defaultFloor = GetFloorTile(room.DefaultFloor);
 
-        for (var y = 0; y < room.Walls.Length; y++)
+        // Generate the standard dungeon room.
+        for (var y = 0; y < RoomHeightInTiles; y++)
         {
-            for (var x = 0; x < room.Walls[y].Length; x++)
+            for (var x = 0; x < RoomWidthInTiles; x++)
             {
                 var position = new Vector2I(x, y);
-                var tile = room.Walls[y][x];
-
-                var floorTile = tile == 's'
-                    ? StoneTile
-                    : defaultFloor;
 
                 _floors.SetCell(
                     position,
                     TileSourceId,
-                    floorTile
+                    defaultFloor
                 );
 
-                if (tile == '#')
+                if (!IsPerimeter(x, y))
                 {
-                    var isDoorOpening = DoorwayGeometry.IsOpening(
-                        room.Doors,
-                        x,
-                        y
-                    );
+                    continue;
+                }
 
-                    if (!isDoorOpening)
-                    {
-                        _walls.SetCell(
-                            position,
-                            TileSourceId,
-                            WallTile
-                        );
-                    }
+                if (DoorwayGeometry.IsOpening(room.Doors, x, y))
+                {
+                    continue;
+                }
+
+                _walls.SetCell(
+                    position,
+                    TileSourceId,
+                    WallTile
+                );
+            }
+        }
+
+        // Add the room-specific internal walls.
+        foreach (var wall in room.InteriorWalls)
+        {
+            for (var y = wall.Y; y < wall.Y + wall.Height; y++)
+            {
+                for (var x = wall.X; x < wall.X + wall.Width; x++)
+                {
+                    _walls.SetCell(
+                        new Vector2I(x, y),
+                        TileSourceId,
+                        WallTile
+                    );
                 }
             }
+        }
+
+        // Apply any custom floor tiles.
+        foreach (var floor in room.FloorOverrides)
+        {
+            _floors.SetCell(
+                new Vector2I(floor.X, floor.Y),
+                TileSourceId,
+                GetFloorTile(floor.Floor)
+            );
         }
 
         LoadDoors(room, state);
@@ -113,6 +116,71 @@ public partial class Room : Node2D
         {
             block.Reset();
         }
+    }
+
+    private static void ValidateLayout(RoomData room)
+    {
+        // Validate the default floor before rendering.
+        _ = GetFloorTile(room.DefaultFloor);
+
+        foreach (var wall in room.InteriorWalls)
+        {
+            var maximumX = RoomWidthInTiles - PerimeterThickness;
+            var maximumY = RoomHeightInTiles - PerimeterThickness;
+
+            if (wall.Width <= 0 ||
+                wall.Height <= 0 ||
+                wall.X < PerimeterThickness ||
+                wall.Y < PerimeterThickness ||
+                wall.X >= maximumX ||
+                wall.Y >= maximumY ||
+                wall.Width > maximumX - wall.X ||
+                wall.Height > maximumY - wall.Y)
+            {
+                throw new ArgumentException(
+                    $"Room '{room.Id}' contains an invalid " +
+                    $"interior wall at ({wall.X}, {wall.Y}) " +
+                    $"with size {wall.Width}x{wall.Height}."
+                );
+            }
+        }
+
+        foreach (var floor in room.FloorOverrides)
+        {
+            if (floor.X < 0 ||
+                floor.X >= RoomWidthInTiles ||
+                floor.Y < 0 ||
+                floor.Y >= RoomHeightInTiles)
+            {
+                throw new ArgumentException(
+                    $"Room '{room.Id}' contains an invalid " +
+                    $"floor position ({floor.X}, {floor.Y})."
+                );
+            }
+
+            _ = GetFloorTile(floor.Floor);
+        }
+    }
+
+    private static bool IsPerimeter(int x, int y)
+    {
+        return x < PerimeterThickness ||
+               x >= RoomWidthInTiles - PerimeterThickness ||
+               y < PerimeterThickness ||
+               y >= RoomHeightInTiles - PerimeterThickness;
+    }
+
+    private static Vector2I GetFloorTile(string floor)
+    {
+        return floor?.ToLowerInvariant() switch
+        {
+            "grass" => GrassTile,
+            "stone" => StoneTile,
+
+            _ => throw new ArgumentException(
+                $"Unsupported floor type: '{floor}'."
+            )
+        };
     }
 
     private void LoadDoors(RoomData room, DungeonState state)

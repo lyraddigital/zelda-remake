@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Zelda Remake'">
+
+    <!-- Exclude the Core and Tests directories from
+         the main game's automatic file discovery. -->
+    <DefaultItemExcludes>
+      $(DefaultItemExcludes);Core\**;Tests\**
+    </DefaultItemExcludes>
+
+  </PropertyGroup>
+
+</Project>

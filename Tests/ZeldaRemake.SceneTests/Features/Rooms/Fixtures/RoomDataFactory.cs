@@ -11,11 +11,7 @@ public static class RoomDataFactory
         {
             Id = "test_room",
             Name = "Test Room",
-            DefaultFloor = "grass",
-            Walls = Enumerable.Repeat(
-                new string('.', 16),
-                11
-            ).ToArray()
+            DefaultFloor = "grass"
         };
     }
 }

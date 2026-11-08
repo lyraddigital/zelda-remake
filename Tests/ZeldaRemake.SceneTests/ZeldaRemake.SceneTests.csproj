@@ -11,26 +11,39 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <TestFramework>GdUnit4</TestFramework>
     <RunSettingsFilePath>$(MSBuildProjectDirectory)\SceneTests.runsettings</RunSettingsFilePath>
+
+    <EnableDefaultItems>false</EnableDefaultItems>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Test framework -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageReference Include="gdUnit4.api" Version="5.1.0-rc6" />
     <PackageReference Include="gdUnit4.test.adapter" Version="3.2.0" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Exclude Godot-generated C# files from compilation. -->
-    <Compile Remove=".godot/**/*.cs" />
+    <!-- Shared application logic -->
+    <ProjectReference Include="..\..\Core\ZeldaRemake.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\PushableBlocks\Fixtures\" />
+    <!-- Scene tests -->
+    <Compile Include="Features\**\*.cs" />
+    <Compile Include="Helpers\**\*.cs" />
+
+    <!-- Godot-specific production code via directory junctions -->
+    <Compile Include="Scripts\**\*.cs" />
+    <Compile Include="Services\**\*.cs" />
+
+    <!-- GdUnit4 generated test runner -->
+    <Compile Include="gdunit4_testadapter_v5\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Test scene fixtures -->
     <None Include="Features\PushableBlocks\Fixtures\PushableBlockFixture.tscn" />
-    <None Include="features\rooms\fixtures\RoomTransitionFixture.tscn" />
+    <None Include="Features\Rooms\Fixtures\RoomTransitionFixture.tscn" />
   </ItemGroup>
 
 </Project>

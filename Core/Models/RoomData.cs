@@ -10,9 +10,9 @@ public sealed class RoomData
     public GridPosition Position { get; set; } = new();
 
     public string DefaultFloor { get; set; } = "grass";
-    public string[] Walls { get; set; } = [];
+    public List<InteriorWallData> InteriorWalls { get; set; } = [];
+    public List<FloorOverrideData> FloorOverrides { get; set; } = [];
     public List<DoorData> Doors { get; set; } = [];
-
     public List<RoomObjectData> Objects { get; set; } = [];
     //public List<RoomObjectData> Enemies { get; set; } = [];
 }
