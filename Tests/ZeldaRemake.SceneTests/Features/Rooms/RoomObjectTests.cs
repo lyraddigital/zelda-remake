@@ -350,6 +350,157 @@ public class RoomObjectTests
         ).IsTrue();
     }
 
+
+    [TestCase]
+    [ThrowsException(typeof(InvalidOperationException))]
+    public void LoadLayout_WhenBlockTargetsNonShutterDoor_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        roomData.Doors.Add(new DoorData
+        {
+            Direction = "north",
+            Destination = "another_room",
+            Type = "open"
+        });
+
+        roomData.Objects.Add(
+            CreateBlock("opensDoor", "north")
+        );
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    [ThrowsException(typeof(InvalidOperationException))]
+    public void LoadLayout_WhenBlockReferencesMissingStaircase_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        roomData.Objects.Add(
+            CreateBlock("revealsStaircase", "missing_staircase")
+        );
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    [ThrowsException(typeof(InvalidOperationException))]
+    public void LoadLayout_WhenStaircaseBlockAllowsAnyDirection_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        roomData.Objects.Add(new RoomObjectData
+        {
+            Id = "test_staircase",
+            Type = "staircase",
+            X = 10,
+            Y = 4
+        });
+
+        var block = CreateBlock(
+            "revealsStaircase",
+            "test_staircase"
+        );
+
+        block.Properties["pushDirection"] =
+            JsonSerializer.SerializeToElement("any");
+
+        roomData.Objects.Add(block);
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    [ThrowsException(typeof(InvalidOperationException))]
+    public void LoadLayout_WhenBlockHasConflictingPuzzleActions_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        var block = CreateBlock("opensDoor", "north");
+
+        block.Properties["revealsStaircase"] =
+            JsonSerializer.SerializeToElement("test_staircase");
+
+        roomData.Objects.Add(block);
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    [ThrowsException(typeof(ArgumentException))]
+    public void LoadLayout_WhenBlockHasInvalidPushDirection_ThrowsArgumentException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        var block = CreateBlock();
+
+        block.Properties["pushDirection"] =
+            JsonSerializer.SerializeToElement("diagonal");
+
+        roomData.Objects.Add(block);
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    [ThrowsException(typeof(InvalidOperationException))]
+    public void LoadLayout_WhenBlockPropertyIsNotAString_ThrowsInvalidOperationException()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        var block = CreateBlock();
+
+        block.Properties["opensDoor"] =
+            JsonSerializer.SerializeToElement(123);
+
+        roomData.Objects.Add(block);
+
+        // Act
+        room.LoadLayout(roomData, new DungeonState());
+
+        // Assert
+        // The ThrowsException attribute verifies the exception.
+    }
+
     private static RoomObjectData CreateBlock(
         string? targetProperty = null,
         string? targetValue = null
