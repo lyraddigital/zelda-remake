@@ -33,6 +33,7 @@ public partial class Room : Node2D
     private TileMapLayer _floors = null!;
     private TileMapLayer _walls = null!;
     private readonly List<PushableBlock> _resettableBlocks = [];
+    private readonly List<Staircase> _temporaryStaircases = [];
 
     public override void _Ready()
     {
@@ -115,6 +116,11 @@ public partial class Room : Node2D
         foreach (var block in _resettableBlocks)
         {
             block.Reset();
+        }
+
+        foreach (var staircase in _temporaryStaircases)
+        {
+            staircase.Conceal();
         }
     }
 
@@ -247,6 +253,17 @@ public partial class Room : Node2D
         var container = GetNode<Node2D>("Objects");
 
         _resettableBlocks.Clear();
+        _temporaryStaircases.Clear();
+
+        var staircases = new Dictionary<string, Staircase>(
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        var staircaseBindings = new List<(
+            PushableBlock Block,
+            string BlockId,
+            string StaircaseId
+        )>();
 
         foreach (var child in container.GetChildren())
         {
@@ -301,7 +318,7 @@ public partial class Room : Node2D
                         staircase.Position = position;
                         container.AddChild(staircase);
 
-                        staircase.Configure(state, room.Id, data.Id);
+                        staircases.Add(data.Id, staircase);
 
                         break;
                     }
@@ -374,29 +391,9 @@ public partial class Room : Node2D
                             };
                         }
 
-                        // Permanent staircase puzzle.
+                        // Hidden staircase puzzle: visibility is room-local.
                         if (revealsStaircase is not null)
                         {
-                            var staircaseData = room.Objects.Find(obj =>
-                                string.Equals(
-                                    obj.Id,
-                                    revealsStaircase,
-                                    StringComparison.OrdinalIgnoreCase
-                                ) &&
-                                string.Equals(
-                                    obj.Type,
-                                    "staircase",
-                                    StringComparison.OrdinalIgnoreCase
-                                )
-                            );
-
-                            if (staircaseData is null)
-                            {
-                                throw new InvalidOperationException(
-                                    $"Block '{data.Id}' must reference a staircase"
-                                );
-                            }
-
                             if (string.Equals(
                                 direction,
                                 "any",
@@ -407,31 +404,39 @@ public partial class Room : Node2D
                                 );
                             }
 
-                            block.Pushed += () =>
-                            {
-                                block.DisablePushing();
-
-                                state.TryCompletePuzzle(
-                                    room.Id,
-                                    revealsStaircase
-                                );
-                            };
-
-                            if (state.IsPuzzleCompleted(
-                                room.Id,
-                                revealsStaircase))
-                            {
-                                block.DisablePushing();
-                            }
+                            staircaseBindings.Add((
+                                block,
+                                data.Id,
+                                revealsStaircase
+                            ));
                         }
 
                         // Every block returns to its starting position.
-                        // Completed staircase blocks remain unpushable.
                         _resettableBlocks.Add(block);
 
                         break;
                     }
             }
+        }
+
+        // Bind after every object exists, regardless of JSON order.
+        foreach (var (block, blockId, staircaseId) in staircaseBindings)
+        {
+            if (!staircases.TryGetValue(staircaseId, out var staircase))
+            {
+                throw new InvalidOperationException(
+                    $"Block '{blockId}' must reference a staircase."
+                );
+            }
+
+            staircase.Conceal();
+
+            if (!_temporaryStaircases.Contains(staircase))
+            {
+                _temporaryStaircases.Add(staircase);
+            }
+
+            block.Pushed += staircase.Reveal;
         }
     }
 
