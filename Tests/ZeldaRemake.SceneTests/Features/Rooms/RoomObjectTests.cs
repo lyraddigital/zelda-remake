@@ -76,7 +76,7 @@ public class RoomObjectTests
     }
 
     [TestCase]
-    public void LoadLayout_WhenStaircasePuzzleIsIncomplete_HidesStaircase()
+    public void LoadLayout_WhenStaircaseHasNoRevealBlock_ShowsStaircase()
     {
         // Arrange
         var (_, room) = RoomTestFixture.Load();
@@ -95,47 +95,44 @@ public class RoomObjectTests
         room.LoadLayout(roomData, new DungeonState());
 
         // Assert
-        var objects = room.GetNode<Node2D>("Objects");
-        var staircase = objects.GetChild(0) as Staircase;
+        var staircase = room.GetNode<Node2D>("Objects")
+            .GetChild<Staircase>(0);
 
-        AssertBool(staircase is not null).IsTrue();
-        AssertBool(staircase!.Visible).IsFalse();
+        AssertBool(staircase.Visible).IsTrue();
+
+        room.ResetTemporaryState();
+
+        AssertBool(staircase.Visible).IsTrue();
     }
 
     [TestCase]
-    public void LoadLayout_WhenStaircasePuzzleCompletes_RevealsStaircase()
+    public void LoadLayout_WhenStaircaseHasRevealBlock_HidesStaircase()
     {
         // Arrange
         var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
+        roomData.Objects.Add(
+            CreateBlock("revealsStaircase", "test_staircase")
+        );
+
         roomData.Objects.Add(new RoomObjectData
         {
             Id = "test_staircase",
             Type = "staircase",
-            X = 6,
+            X = 10,
             Y = 4
         });
 
-        var state = new DungeonState();
-
-        room.LoadLayout(roomData, state);
-
-        var staircase = room.GetNode<Node2D>("Objects")
-            .GetChild(0) as Staircase;
-
-        AssertBool(staircase is not null).IsTrue();
-        AssertBool(staircase!.Visible).IsFalse();
-
         // Act
-        state.TryCompletePuzzle(
-            roomData.Id,
-            "test_staircase"
-        );
+        room.LoadLayout(roomData, new DungeonState());
 
         // Assert
-        AssertBool(staircase.Visible).IsTrue();
+        var staircase = room.GetNode<Node2D>("Objects")
+            .GetChild<Staircase>(1);
+
+        AssertBool(staircase.Visible).IsFalse();
     }
 
     [TestCase]
@@ -226,9 +223,8 @@ public class RoomObjectTests
         // The ThrowsException attribute verifies the exception.
     }
 
-
     [TestCase]
-    public async Task TryPush_WhenBlockRevealsStaircase_CompletesPuzzle()
+    public async Task TryPush_WhenBlockRevealsStaircase_ShowsUntilRoomReset()
     {
         // Arrange
         var (runner, room) = RoomTestFixture.Load();
@@ -252,7 +248,6 @@ public class RoomObjectTests
         room.LoadLayout(roomData, state);
 
         var objects = room.GetNode<Node2D>("Objects");
-
         var staircase = objects.GetChild<Staircase>(0);
         var block = objects.GetChild<PushableBlock>(1);
 
@@ -267,35 +262,40 @@ public class RoomObjectTests
         AssertBool(staircase.Visible).IsFalse();
 
         // Act
-        var result = block.TryPush(Vector2.Up, player);
+        var firstPushResult = block.TryPush(Vector2.Up, player);
 
         await room.WaitUntilAsync(
-            () => state.IsPuzzleCompleted(
-                roomData.Id,
-                "test_staircase"
-            ),
-            "staircase puzzle to complete"
+            () => staircase.Visible,
+            "hidden staircase to appear"
         );
 
         // Assert
-        AssertBool(result).IsTrue();
+        AssertBool(firstPushResult).IsTrue();
         AssertBool(staircase.Visible).IsTrue();
 
         AssertBool(
-            state.IsPuzzleCompleted(
-                roomData.Id,
-                "test_staircase"
-            )
-        ).IsTrue();
+            state.IsPuzzleCompleted(roomData.Id, "test_staircase")
+        ).IsFalse();
 
-        // Completed puzzles survive a temporary room reset.
+        // Simulate leaving the room.
         room.ResetTemporaryState();
 
         await block.WaitForPositionAsync(initialPosition);
 
+        AssertBool(staircase.Visible).IsFalse();
+
+        // Allow the physics state to synchronise after the reset.
+        await runner.SimulateFrames(2);
+
+        // The player can reveal the staircase again.
         var secondPushResult = block.TryPush(Vector2.Up, player);
 
-        AssertBool(secondPushResult).IsFalse();
+        await room.WaitUntilAsync(
+            () => staircase.Visible,
+            "hidden staircase to reappear"
+        );
+
+        AssertBool(secondPushResult).IsTrue();
         AssertBool(staircase.Visible).IsTrue();
     }
 
@@ -499,6 +499,40 @@ public class RoomObjectTests
 
         // Assert
         // The ThrowsException attribute verifies the exception.
+    }
+
+    [TestCase]
+    public void LoadLayout_WhenSavedPuzzleWasCompleted_StillHidesTemporaryStaircase()
+    {
+        // Arrange
+        var (_, room) = RoomTestFixture.Load();
+
+        var roomData = RoomDataFactory.Create();
+
+        roomData.Objects.Add(new RoomObjectData
+        {
+            Id = "test_staircase",
+            Type = "staircase",
+            X = 10,
+            Y = 4
+        });
+
+        roomData.Objects.Add(
+            CreateBlock("revealsStaircase", "test_staircase")
+        );
+
+        var state = new DungeonState();
+
+        state.TryCompletePuzzle(roomData.Id, "test_staircase");
+
+        // Act
+        room.LoadLayout(roomData, state);
+
+        // Assert
+        var staircase = room.GetNode<Node2D>("Objects")
+            .GetChild<Staircase>(0);
+
+        AssertBool(staircase.Visible).IsFalse();
     }
 
     private static RoomObjectData CreateBlock(
