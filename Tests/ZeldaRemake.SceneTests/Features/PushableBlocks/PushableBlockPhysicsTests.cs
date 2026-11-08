@@ -126,6 +126,78 @@ public class PushableBlockPhysicsSceneTests
         ).IsTrue();
     }
 
+
+    [TestCase]
+    public async Task TryPush_WhenBlockWasReset_AllowsAnotherPush()
+    {
+        // Arrange
+        var (runner, block, player, _) = LoadFixture();
+
+        var initialPosition = block.Position;
+        var pushedPosition = initialPosition + Vector2.Up * TileSize;
+
+        await runner.SimulateFrames(2);
+
+        var firstPushResult = block.TryPush(Vector2.Up, player);
+
+        AssertBool(firstPushResult).IsTrue();
+
+        await block.WaitForPositionAsync(pushedPosition);
+
+        block.Reset();
+
+        await block.WaitForPositionAsync(initialPosition);
+
+        // Act
+        var secondPushResult = block.TryPush(Vector2.Up, player);
+
+        await block.WaitForPositionAsync(pushedPosition);
+
+        // Assert
+        AssertBool(secondPushResult).IsTrue();
+
+        AssertBool(
+            block.Position.IsEqualApprox(pushedPosition)
+        ).IsTrue();
+    }
+
+
+    [TestCase]
+    public async Task TryPush_WhenCompletedBlockWasReset_ReturnsFalse()
+    {
+        // Arrange
+        var (runner, block, player, _) = LoadFixture();
+
+        var initialPosition = block.Position;
+        var pushedPosition = initialPosition + Vector2.Up * TileSize;
+
+        await runner.SimulateFrames(2);
+
+        var firstPushResult = block.TryPush(Vector2.Up, player);
+
+        AssertBool(firstPushResult).IsTrue();
+
+        await block.WaitForPositionAsync(pushedPosition);
+
+        // Simulate the puzzle being completed.
+        block.DisablePushing();
+
+        // Simulate leaving the room and resetting the block.
+        block.Reset();
+
+        await block.WaitForPositionAsync(initialPosition);
+
+        // Act
+        var secondPushResult = block.TryPush(Vector2.Up, player);
+
+        // Assert
+        AssertBool(secondPushResult).IsFalse();
+
+        AssertBool(
+            block.Position.IsEqualApprox(initialPosition)
+        ).IsTrue();
+    }
+
     private static (
         ISceneRunner Runner,
         PushableBlock Block,
