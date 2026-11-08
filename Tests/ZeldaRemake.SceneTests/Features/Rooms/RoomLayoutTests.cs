@@ -11,13 +11,11 @@ namespace ZeldaRemake.SceneTests.Features.Rooms;
 [RequireGodotRuntime]
 public class RoomLayoutTests
 {
-    private const string RoomScenePath = "res://Scenes/Room.tscn";
-
     [TestCase]
     public void LoadLayout_WhenRoomHasNoInteriorWalls_CreatesPerimeter()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -49,7 +47,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenInteriorWallsExist_CreatesExpectedWalls()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -84,7 +82,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenInteriorWallOverlapsPerimeter_ThrowsArgumentException()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -107,7 +105,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenNorthDoorExists_LeavesPerimeterOpening()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -141,7 +139,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenFloorOverrideExists_UsesConfiguredFloor()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -168,7 +166,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenRoomIsValid_CreatesExpectedTiles()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -222,7 +220,7 @@ public class RoomLayoutTests
     public void LoadLayout_WhenRoomContainsDoor_CreatesDoor()
     {
         // Arrange
-        var (_, room) = LoadRoom();
+        var (_, room) = RoomTestFixture.Load();
 
         var roomData = RoomDataFactory.Create();
 
@@ -252,17 +250,5 @@ public class RoomLayoutTests
                 new Vector2(128, 16)
             )
         ).IsTrue();
-    }
-
-    private static (ISceneRunner Runner, Room Room) LoadRoom()
-    {
-        var runner = ISceneRunner.Load(RoomScenePath);
-
-        var room = runner.Scene() as Room
-            ?? throw new InvalidOperationException(
-                "Failed to load Room scene."
-            );
-
-        return (runner, room);
     }
 }

@@ -43,7 +43,6 @@
   <ItemGroup>
     <!-- Test scene fixtures -->
     <None Include="Features\PushableBlocks\Fixtures\PushableBlockFixture.tscn" />
-    <None Include="Features\Rooms\Fixtures\RoomTransitionFixture.tscn" />
   </ItemGroup>
 
 </Project>
