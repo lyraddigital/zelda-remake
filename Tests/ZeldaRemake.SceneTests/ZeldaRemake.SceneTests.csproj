@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <None Include="Features\PushableBlocks\Fixtures\PushableBlockFixture.tscn" />
+    <None Include="features\rooms\fixtures\RoomTransitionFixture.tscn" />
   </ItemGroup>
 
 </Project>

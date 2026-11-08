@@ -29,4 +29,30 @@ public static class NodeTestExtensions
             );
         }
     }
+
+    public static async Task WaitUntilAsync(
+        this Node node,
+        Func<bool> condition,
+        string expectation,
+        ulong timeoutMilliseconds = 3000
+    )
+    {
+        var startTime = Time.GetTicksMsec();
+
+        while (!condition())
+        {
+            if (Time.GetTicksMsec() - startTime >= timeoutMilliseconds)
+            {
+                throw new TimeoutException(
+                    $"Timed out waiting for {expectation}."
+                );
+            }
+
+            await node.ToSignal(
+                node.GetTree(),
+                SceneTree.SignalName.PhysicsFrame
+            );
+        }
+    }
+
 }
