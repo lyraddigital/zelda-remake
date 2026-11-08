@@ -2,14 +2,14 @@ namespace ZeldaRemake.Doors;
 
 public static class DoorAlignment
 {
-    private const float Response = 8.0f;
+    private const float Response = 32.0f;
     private const float DeadZone = 0.2f;
 
     public static float GetLateralVelocity(
         float playerCoordinate,
         float doorCoordinate,
-        float tolerance = 16.0f,
-        float maximumSpeed = 48.0f
+        float tolerance = 5.0f,
+        float maximumSpeed = 120.0f
     )
     {
         if (tolerance < 0 || maximumSpeed < 0)

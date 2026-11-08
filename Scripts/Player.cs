@@ -20,22 +20,33 @@ public partial class Player : CharacterBody2D
 
     public override void _PhysicsProcess(double delta)
     {
-        var horizontal = Input.GetAxis("move_left", "move_right");
-        var vertical = Input.GetAxis("move_up", "move_down");
+        var horizontal = Input.GetAxis(
+            "move_left",
+            "move_right"
+        );
 
-        // Four-direction movement, with horizontal priority.
-        var direction = horizontal != 0
-            ? new Vector2(horizontal, 0)
-            : new Vector2(0, vertical);
+        var vertical = Input.GetAxis(
+            "move_up",
+            "move_down"
+        );
+
+        // Allow movement in all eight directions.
+        // Normalise to prevent faster diagonal movement.
+        var direction = new Vector2(
+            horizontal,
+            vertical
+        ).Normalized();
 
         var movementVelocity = direction * Speed;
 
         if (direction != Vector2.Zero)
         {
-            movementVelocity += GetDoorAlignmentVelocity(direction);
+            movementVelocity += GetDoorAlignmentVelocity(
+                direction
+            );
         }
 
-        Velocity = movementVelocity.LimitLength(Speed);
+        Velocity = movementVelocity;
 
         MoveAndSlide();
 

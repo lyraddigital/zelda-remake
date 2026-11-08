@@ -170,6 +170,7 @@ public partial class Door : Node2D
     }
 
 
+
     public bool TryGetAlignmentVelocity(
         Vector2 playerPosition,
         Vector2 movementDirection,
@@ -186,80 +187,58 @@ public partial class Door : Node2D
             return false;
         }
 
+        const float approachDistance = 28.0f;
+
+        var forward = _data.Direction.ToLowerInvariant() switch
+        {
+            "north" => Vector2.Up,
+            "south" => Vector2.Down,
+            "east" => Vector2.Right,
+            "west" => Vector2.Left,
+            _ => Vector2.Zero
+        };
+
+        if (forward == Vector2.Zero ||
+            movementDirection.Dot(forward) < 0.95f)
+        {
+            return false;
+        }
+
         var center = GlobalPosition;
 
-        switch (_data.Direction.ToLowerInvariant())
+        var distance = (center - playerPosition).Dot(forward);
+
+        // Only align immediately before reaching the doorway.
+        if (distance <= 0.0f || distance > approachDistance)
         {
-            case "north":
-                if (movementDirection.Y >= 0 ||
-                    playerPosition.Y < center.Y)
-                {
-                    return false;
-                }
-
-                alignmentVelocity = new Vector2(
-                    DoorAlignment.GetLateralVelocity(
-                        playerPosition.X,
-                        center.X
-                    ),
-                    0
-                );
-
-                return true;
-
-            case "south":
-                if (movementDirection.Y <= 0 ||
-                    playerPosition.Y > center.Y)
-                {
-                    return false;
-                }
-
-                alignmentVelocity = new Vector2(
-                    DoorAlignment.GetLateralVelocity(
-                        playerPosition.X,
-                        center.X
-                    ),
-                    0
-                );
-
-                return true;
-
-            case "east":
-                if (movementDirection.X <= 0 ||
-                    playerPosition.X > center.X)
-                {
-                    return false;
-                }
-
-                alignmentVelocity = new Vector2(
-                    0,
-                    DoorAlignment.GetLateralVelocity(
-                        playerPosition.Y,
-                        center.Y
-                    )
-                );
-
-                return true;
-
-            case "west":
-                if (movementDirection.X >= 0 ||
-                    playerPosition.X < center.X)
-                {
-                    return false;
-                }
-
-                alignmentVelocity = new Vector2(
-                    0,
-                    DoorAlignment.GetLateralVelocity(
-                        playerPosition.Y,
-                        center.Y
-                    )
-                );
-
-                return true;
-
-            default:
-                return false;
+            return false;
         }
+
+        // Horizontal travel needs vertical correction and vice versa.
+        var horizontalTravel = forward.X != 0.0f;
+
+        var playerCoordinate = horizontalTravel
+            ? playerPosition.Y
+            : playerPosition.X;
+
+        var doorCoordinate = horizontalTravel
+            ? center.Y
+            : center.X;
+
+        var correction = DoorAlignment.GetLateralVelocity(
+            playerCoordinate,
+            doorCoordinate
+        );
+
+        if (Mathf.IsZeroApprox(correction))
+        {
+            return false;
+        }
+
+        alignmentVelocity = horizontalTravel
+            ? new Vector2(0, correction)
+            : new Vector2(correction, 0);
+
+        return true;
     }
 }
