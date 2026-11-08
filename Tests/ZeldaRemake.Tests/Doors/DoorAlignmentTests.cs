@@ -36,7 +36,7 @@ public class DoorAlignmentTests
         );
 
         // Assert
-        Assert.Equal(32.0f, velocity);
+        Assert.Equal(120.0f, velocity);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public class DoorAlignmentTests
         );
 
         // Assert
-        Assert.Equal(-32.0f, velocity);
+        Assert.Equal(-120.0f, velocity);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class DoorAlignmentTests
     }
 
     [Fact]
-    public void GetLateralVelocity_WhenCorrectionIsLarge_CapsSpeed()
+    public void GetLateralVelocity_WhenOutsideAlignmentTolerance_ReturnsZero()
     {
         // Arrange
         const float player = 112.0f;
@@ -87,7 +87,7 @@ public class DoorAlignmentTests
         );
 
         // Assert
-        Assert.Equal(48.0f, velocity);
+        Assert.Equal(0.0f, velocity);
     }
 
     [Fact]
@@ -106,4 +106,22 @@ public class DoorAlignmentTests
         // Assert
         Assert.Equal(0.0f, velocity);
     }
+
+    [Fact]
+    public void GetLateralVelocity_WhenAtMaximumTolerance_CapsSpeed()
+    {
+        // Arrange
+        const float player = 123.0f;
+        const float door = 128.0f;
+
+        // Act
+        var velocity = DoorAlignment.GetLateralVelocity(
+            player,
+            door
+        );
+
+        // Assert
+        Assert.Equal(120.0f, velocity);
+    }
+
 }
