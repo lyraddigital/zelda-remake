@@ -3,11 +3,11 @@ using GdUnit4;
 using Godot;
 using static GdUnit4.Assertions;
 
-namespace ZeldaRemake.SceneTests;
+namespace ZeldaRemake.SceneTests.Features.PushableBlocks;
 
 [TestSuite]
 [RequireGodotRuntime]
-public class PushableBlockSceneTests
+public class PushableBlockBehaviorTests
 {
     [TestCase]
     public void Load_WhenSceneExists_InstantiatesPushableBlock()

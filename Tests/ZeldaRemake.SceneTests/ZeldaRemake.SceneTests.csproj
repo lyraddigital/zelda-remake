@@ -25,11 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Fixtures\" />
+    <Folder Include="Features\PushableBlocks\Fixtures\" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="fixtures\PushableBlockFixture.tscn" />
+    <None Include="Features\PushableBlocks\Fixtures\PushableBlockFixture.tscn" />
   </ItemGroup>
 
 </Project>

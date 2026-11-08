@@ -1,6 +1,6 @@
 using ZeldaRemake.Models;
 
-namespace ZeldaRemake.UnitTests;
+namespace ZeldaRemake.UnitTests.Dungeon;
 
 public class DungeonStateTests
 {

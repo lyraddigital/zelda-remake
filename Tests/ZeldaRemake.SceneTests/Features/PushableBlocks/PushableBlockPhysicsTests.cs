@@ -4,14 +4,14 @@ using Godot;
 using ZeldaRemake.SceneTests.Helpers;
 using static GdUnit4.Assertions;
 
-namespace ZeldaRemake.SceneTests;
+namespace ZeldaRemake.SceneTests.Features.PushableBlocks;
 
 [TestSuite]
 [RequireGodotRuntime]
 public class PushableBlockPhysicsSceneTests
 {
     private const string FixturePath =
-        "res://Fixtures/PushableBlockFixture.tscn";
+        "res://Features/PushableBlocks/Fixtures/PushableBlockFixture.tscn";
 
     private const float TileSize = 16.0f;
 
