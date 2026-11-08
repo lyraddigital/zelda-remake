@@ -1,6 +1,7 @@
 
 using GdUnit4;
 using Godot;
+using ZeldaRemake.SceneTests.Helpers;
 using static GdUnit4.Assertions;
 
 namespace ZeldaRemake.SceneTests;
@@ -95,6 +96,7 @@ public class PushableBlockPhysicsSceneTests
         var (runner, block, player, _) = LoadFixture();
 
         var initialPosition = block.Position;
+        var expectedMovedPosition = initialPosition + Vector2.Up * TileSize;
 
         await runner.SimulateFrames(2);
 
@@ -102,10 +104,21 @@ public class PushableBlockPhysicsSceneTests
 
         await runner.SimulateFrames(20);
 
+        var movedPosition = block.Position;
+        var movementDifference = movedPosition.DistanceTo(expectedMovedPosition);
+
         AssertBool(pushResult).IsTrue();
+
+        AssertBool(
+            movementDifference <= 0.1f
+        ).IsTrue();
 
         // Act
         block.Reset();
+
+        await block.WaitForPositionAsync(
+            initialPosition
+        );
 
         // Assert
         AssertBool(
