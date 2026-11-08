@@ -1,6 +1,7 @@
 
 using Godot;
 using System;
+using ZeldaRemake.Doors;
 using ZeldaRemake.Models;
 
 public partial class Door : Node2D
@@ -8,8 +9,10 @@ public partial class Door : Node2D
     private ColorRect _opening = null!;
     private CollisionShape2D _collision = null!;
     private Area2D _unlockArea = null!;
+
     private DungeonState _state = null!;
     private DoorData _data = null!;
+    private IDoorBehavior _behavior = null!;
 
     private string _roomId = string.Empty;
 
@@ -29,8 +32,13 @@ public partial class Door : Node2D
     {
         if (_state is not null)
         {
-            _state.ShutterOpened -= OnShutterOpened;
-            _state.ShutterClosed -= OnShutterOpened;
+            _state.ShutterOpened -= OnShutterChanged;
+            _state.ShutterClosed -= OnShutterChanged;
+        }
+
+        if (_unlockArea is not null)
+        {
+            _unlockArea.BodyEntered -= OnBodyEntered;
         }
     }
 
@@ -40,12 +48,32 @@ public partial class Door : Node2D
         string roomId
     )
     {
+        if (_state is not null)
+        {
+            _state.ShutterOpened -= OnShutterChanged;
+            _state.ShutterClosed -= OnShutterChanged;
+        }
+
         _data = data;
         _state = state;
         _roomId = roomId;
 
-        _state.ShutterOpened += OnShutterOpened;
-        _state.ShutterClosed += OnShutterOpened;
+        _behavior = data.Type.ToLowerInvariant() switch
+        {
+            "open" => new StandardDoorBehavior(),
+            "locked" => new LockedDoorBehavior(),
+            "shutter" => new ShutterDoorBehavior(),
+
+            _ => throw new InvalidOperationException(
+                $"Unsupported door type: {data.Type}"
+            )
+        };
+
+        if (_behavior is ShutterDoorBehavior)
+        {
+            _state.ShutterOpened += OnShutterChanged;
+            _state.ShutterClosed += OnShutterChanged;
+        }
 
         UpdateAppearance();
     }
@@ -57,12 +85,12 @@ public partial class Door : Node2D
             return;
         }
 
-        if (_state.IsDoorOpen(_roomId, _data))
+        if (_behavior.IsOpen(_state, _roomId, _data))
         {
             return;
         }
 
-        if (!_state.TryUnlockDoor(_roomId, _data))
+        if (!_behavior.TryOpen(_state, _roomId, _data))
         {
             return;
         }
@@ -74,7 +102,10 @@ public partial class Door : Node2D
         );
     }
 
-    private void OnShutterOpened(string roomId, string direction)
+    private void OnShutterChanged(
+        string roomId,
+        string direction
+    )
     {
         if (!string.Equals(
                 roomId,
@@ -91,10 +122,13 @@ public partial class Door : Node2D
         UpdateAppearance();
     }
 
-
     private void UpdateAppearance()
     {
-        var isOpen = _state.IsDoorOpen(_roomId, _data);
+        var isOpen = _behavior.IsOpen(
+            _state,
+            _roomId,
+            _data
+        );
 
         _opening.Color = isOpen
             ? new Color("#202020")

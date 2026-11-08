@@ -1,6 +1,3 @@
-
-using System;
-using System.Collections.Generic;
 using ZeldaRemake.Models;
 
 public sealed class DungeonState
@@ -180,6 +177,7 @@ public sealed class DungeonState
 
         _collectedObjects.Clear();
         _unlockedDoors.Clear();
+        _openShutters.Clear();
         _completedPuzzles.Clear();
 
         foreach (var id in save.CollectedObjects)
