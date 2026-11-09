@@ -1,8 +1,7 @@
-
 using ZeldaRemake.Doors;
 using ZeldaRemake.Models;
 
-namespace ZeldaRemake.UnitTests.Dungeon;
+namespace ZeldaRemake.UnitTests.Doors;
 
 public class DoorBehaviorTests
 {

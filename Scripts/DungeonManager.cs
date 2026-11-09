@@ -22,7 +22,7 @@ public partial class DungeonManager : Node2D
     private DungeonDefinition _definition = null!;
 
     private DungeonState _state = new();
-    private string _dungeonId = string.Empty;
+    private DungeonSaveCoordinator? _saveCoordinator;
 
     private RoomData _currentRoom = null!;
     private bool _isTransitioning;
@@ -53,6 +53,11 @@ public partial class DungeonManager : Node2D
         }
     }
 
+    public override void _ExitTree()
+    {
+        _saveCoordinator?.Dispose();
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (!@event.IsActionPressed("save_game"))
@@ -62,7 +67,7 @@ public partial class DungeonManager : Node2D
 
         try
         {
-            SaveGame();
+            _saveCoordinator?.Save();
         }
         catch (Exception exception)
         {
@@ -89,20 +94,27 @@ public partial class DungeonManager : Node2D
         var dungeon = _definition.Data;
         var startingRoom = _definition.StartingRoom;
 
-        _dungeonId = dungeon.Id;
-
-        // Load a saved game, if one exists.
-        var save = DungeonSaveService.Load(_dungeonId);
+        _saveCoordinator?.Dispose();
 
         _state = new DungeonState();
-        _shutterEntryController = new ShutterEntryController(_state);
 
-        if (save is not null)
-        {
-            _state.Restore(save);
-        }
+        _saveCoordinator = new DungeonSaveCoordinator(
+            dungeon.Id,
+            _state,
+            DungeonSaveService.Load,
+            DungeonSaveService.Save,
+            () => _isTransitioning,
+            exception => GD.PushError(
+                $"Auto-save failed: {exception}"
+            )
+        );
 
-        _state.Changed += AutoSave;
+        // Restore the state before creating the dungeon rooms.
+        _saveCoordinator.Restore();
+
+        _shutterEntryController = new ShutterEntryController(
+            _state
+        );
 
         // Instantiate the dungeon rooms after restoring state.
         foreach (var roomData in dungeon.Rooms)
@@ -123,40 +135,6 @@ public partial class DungeonManager : Node2D
         GD.Print(
             $"Loaded dungeon '{dungeon.Name}' with {dungeon.Rooms.Count} rooms."
         );
-    }
-
-    private void AutoSave()
-    {
-        if (_isTransitioning || string.IsNullOrEmpty(_dungeonId))
-        {
-            return;
-        }
-
-        try
-        {
-            SaveGame();
-        }
-        catch (Exception exception)
-        {
-            GD.PushError($"Auto-save failed: {exception}");
-        }
-    }
-
-    private void SaveGame()
-    {
-        if (_isTransitioning || string.IsNullOrEmpty(_dungeonId))
-        {
-            return;
-        }
-
-        var save = new DungeonSaveData
-        {
-            DungeonId = _dungeonId
-        };
-
-        _state.CopyTo(save);
-
-        DungeonSaveService.Save(save);
     }
 
     private void CreateRoom(RoomData roomData)
