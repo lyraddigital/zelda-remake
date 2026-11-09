@@ -1,9 +1,8 @@
 
 using Godot;
 using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using ZeldaRemake.Doors;
+using ZeldaRemake.Dungeon;
 using ZeldaRemake.Geometry;
 using ZeldaRemake.Models;
 
@@ -20,8 +19,7 @@ public partial class DungeonManager : Node2D
     private Node2D _rooms = null!;
     private Player _player = null!;
     private Camera2D _camera = null!;
-
-    private readonly Dictionary<string, RoomData> _roomLookup = new();
+    private DungeonDefinition _definition = null!;
 
     private DungeonState _state = new();
     private string _dungeonId = string.Empty;
@@ -86,36 +84,10 @@ public partial class DungeonManager : Node2D
 
         var json = Godot.FileAccess.GetFileAsString(path);
 
-        var dungeon = JsonSerializer.Deserialize<DungeonData>(
-            json,
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            }
-        ) ?? throw new InvalidOperationException(
-            "Dungeon configuration is invalid."
-        );
+        _definition = DungeonDefinition.Parse(json);
 
-        _roomLookup.Clear();
-
-        foreach (var roomData in dungeon.Rooms)
-        {
-            if (!_roomLookup.TryAdd(roomData.Id, roomData))
-            {
-                throw new InvalidOperationException(
-                    $"Duplicate room ID: {roomData.Id}"
-                );
-            }
-        }
-
-        if (!_roomLookup.TryGetValue(
-            dungeon.StartingRoom,
-            out var startingRoom))
-        {
-            throw new InvalidOperationException(
-                $"Starting room not found: {dungeon.StartingRoom}"
-            );
-        }
+        var dungeon = _definition.Data;
+        var startingRoom = _definition.StartingRoom;
 
         _dungeonId = dungeon.Id;
 
@@ -268,9 +240,9 @@ public partial class DungeonManager : Node2D
                 return;
             }
 
-            if (!_roomLookup.TryGetValue(
-                    door.Destination,
-                    out var destination))
+            var destination = _definition.FindRoom(door.Destination);
+
+            if (destination is null)
             {
                 GD.PushError(
                     $"Destination room not found: {door.Destination}"
