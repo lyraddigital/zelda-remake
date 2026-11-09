@@ -8,7 +8,7 @@ public static class DoorAlignment
     public static float GetLateralVelocity(
         float playerCoordinate,
         float doorCoordinate,
-        float tolerance = 5.0f,
+        float tolerance = 7.0f,
         float maximumSpeed = 120.0f
     )
     {

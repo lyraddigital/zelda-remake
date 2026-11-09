@@ -3,6 +3,7 @@ using GdUnit4;
 using Godot;
 using ZeldaRemake.Models;
 using ZeldaRemake.SceneTests.Features.Rooms.Fixtures;
+using ZeldaRemake.SceneTests.Helpers;
 using static GdUnit4.Assertions;
 
 namespace ZeldaRemake.SceneTests.Features.Doors;
@@ -182,10 +183,32 @@ public class DoorSceneTests
         ).IsTrue();
     }
 
-    [TestCase("north", 132, 45, "move_up")]
-    [TestCase("south", 132, 131, "move_down")]
-    [TestCase("east", 214, 92, "move_right")]
-    [TestCase("west", 42, 92, "move_left")]
+
+    [TestCase(216, true)]
+    [TestCase(215, false)]
+    public void TryGetAlignmentVelocity_WhenApproachingEastDoor_Uses24PixelRange(
+        int playerX,
+        bool expectedAlignment
+    )
+    {
+        // Arrange
+        var (_, _, door, _, _) = LoadDoor("east", "open");
+
+        // Act
+        var result = door.TryGetAlignmentVelocity(
+            new Vector2(playerX, 92),
+            Vector2.Right,
+            out _
+        );
+
+        // Assert
+        AssertBool(result == expectedAlignment).IsTrue();
+    }
+
+    [TestCase("north", 132, 39, "move_up")]
+    [TestCase("south", 132, 137, "move_down")]
+    [TestCase("east", 217, 92, "move_right")]
+    [TestCase("west", 39, 92, "move_left")]
     public async Task PlayerMovement_WhenApproachingOpenDoor_AlignsPlayer(
         string direction,
         int startX,
@@ -206,26 +229,68 @@ public class DoorSceneTests
 
         var createdActions = EnsureMovementActions();
 
-        await runner.SimulateFrames(2);
+        var unlockArea = door.GetNode<Area2D>("UnlockArea");
 
         var isVerticalDoor = direction is "north" or "south";
 
         float GetAlignmentError()
         {
             return isVerticalDoor
-                ? Mathf.Abs(player.GlobalPosition.X - door.GlobalPosition.X)
-                : Mathf.Abs(player.GlobalPosition.Y - door.GlobalPosition.Y);
+                ? Mathf.Abs(
+                    player.GlobalPosition.X - door.GlobalPosition.X
+                )
+                : Mathf.Abs(
+                    player.GlobalPosition.Y - door.GlobalPosition.Y
+                );
         }
-
-        var initialError = GetAlignmentError();
 
         try
         {
+            // Wait for Godot to detect the player in the doorway area.
+            await room.WaitUntilAsync(
+                () => unlockArea.GetOverlappingBodies().Contains(player),
+                "player to enter the doorway detection area"
+            );
+
+            await runner.SimulateFrames(1);
+
+            var initialError = GetAlignmentError();
+
+            var movementDirection = direction switch
+            {
+                "north" => Vector2.Up,
+                "south" => Vector2.Down,
+                "east" => Vector2.Right,
+                "west" => Vector2.Left,
+                _ => throw new ArgumentOutOfRangeException(
+                    nameof(direction)
+                )
+            };
+
+            // Confirm the player is eligible for alignment.
+            AssertBool(
+                door.TryGetAlignmentVelocity(
+                    player.GlobalPosition,
+                    movementDirection,
+                    out var alignmentVelocity
+                )
+            ).IsTrue();
+
+            AssertBool(
+                alignmentVelocity.Length() > 0.0f
+            ).IsTrue();
+
             // Act
             runner.SimulateActionPress(action);
 
             await runner.AwaitInputProcessed();
-            await runner.SimulateFrames(8);
+
+            // Wait for an actual correction instead of assuming
+            // it occurs within a fixed number of frames.
+            await room.WaitUntilAsync(
+                () => GetAlignmentError() <= initialError - 1.0f,
+                "player to align with the doorway"
+            );
 
             // Assert
             AssertBool(
@@ -235,11 +300,80 @@ public class DoorSceneTests
         finally
         {
             runner.SimulateActionRelease(action);
+
             await runner.AwaitInputProcessed();
 
             foreach (var createdAction in createdActions)
             {
                 InputMap.EraseAction(createdAction);
+            }
+        }
+    }
+
+    [TestCase("move_up", "move_right", 1, -1)]
+    [TestCase("move_up", "move_left", -1, -1)]
+    [TestCase("move_down", "move_right", 1, 1)]
+    [TestCase("move_down", "move_left", -1, 1)]
+    public async Task PlayerMovement_WhenMovingDiagonally_MaintainsNormalSpeed(
+        string firstAction,
+        string secondAction,
+        int expectedX,
+        int expectedY
+    )
+    {
+        // Arrange
+        var (runner, room) = RoomTestFixture.Load();
+
+        room.LoadLayout(
+            RoomDataFactory.Create(),
+            new DungeonState()
+        );
+
+        var player = CreatePlayer(
+            room,
+            new Vector2(128, 88)
+        );
+
+        var createdActions = EnsureMovementActions();
+
+        await runner.SimulateFrames(2);
+
+        var initialPosition = player.Position;
+
+        try
+        {
+            // Act
+            runner.SimulateActionPress(firstAction);
+            runner.SimulateActionPress(secondAction);
+
+            await runner.AwaitInputProcessed();
+            await runner.SimulateFrames(8);
+
+            var displacement = player.Position - initialPosition;
+
+            // Assert
+            AssertBool(
+                displacement.X * expectedX > 0
+            ).IsTrue();
+
+            AssertBool(
+                displacement.Y * expectedY > 0
+            ).IsTrue();
+
+            AssertBool(
+                Mathf.Abs(player.Velocity.Length() - player.Speed) < 0.5f
+            ).IsTrue();
+        }
+        finally
+        {
+            runner.SimulateActionRelease(firstAction);
+            runner.SimulateActionRelease(secondAction);
+
+            await runner.AwaitInputProcessed();
+
+            foreach (var action in createdActions)
+            {
+                InputMap.EraseAction(action);
             }
         }
     }

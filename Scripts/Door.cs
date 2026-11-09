@@ -187,7 +187,7 @@ public partial class Door : Node2D
             return false;
         }
 
-        const float approachDistance = 28.0f;
+        const float approachDistance = 24.0f;
 
         var forward = _data.Direction.ToLowerInvariant() switch
         {

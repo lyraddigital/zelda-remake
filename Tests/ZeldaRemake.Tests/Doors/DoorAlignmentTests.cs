@@ -124,4 +124,38 @@ public class DoorAlignmentTests
         Assert.Equal(120.0f, velocity);
     }
 
+    [Fact]
+    public void GetLateralVelocity_WhenSevenPixelsOffCentre_CorrectsPosition()
+    {
+        // Arrange
+        const float player = 121.0f;
+        const float door = 128.0f;
+
+        // Act
+        var velocity = DoorAlignment.GetLateralVelocity(
+            player,
+            door
+        );
+
+        // Assert
+        Assert.Equal(120.0f, velocity);
+    }
+
+    [Fact]
+    public void GetLateralVelocity_WhenEightPixelsOffCentre_DoesNotCorrect()
+    {
+        // Arrange
+        const float player = 120.0f;
+        const float door = 128.0f;
+
+        // Act
+        var velocity = DoorAlignment.GetLateralVelocity(
+            player,
+            door
+        );
+
+        // Assert
+        Assert.Equal(0.0f, velocity);
+    }
+
 }
