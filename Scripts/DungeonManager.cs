@@ -3,6 +3,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using ZeldaRemake.Doors;
 using ZeldaRemake.Geometry;
 using ZeldaRemake.Models;
 
@@ -27,8 +28,7 @@ public partial class DungeonManager : Node2D
 
     private RoomData _currentRoom = null!;
     private bool _isTransitioning;
-    private RoomData? _pendingEntryRoom;
-    private DoorData? _pendingEntryShutter;
+    private ShutterEntryController _shutterEntryController = null!;
 
     public override void _Ready()
     {
@@ -123,6 +123,7 @@ public partial class DungeonManager : Node2D
         var save = DungeonSaveService.Load(_dungeonId);
 
         _state = new DungeonState();
+        _shutterEntryController = new ShutterEntryController(_state);
 
         if (save is not null)
         {
@@ -225,7 +226,10 @@ public partial class DungeonManager : Node2D
             return;
         }
 
-        TryCloseEntryShutter();
+        _shutterEntryController.TryCloseAfterEntry(
+            _player.Position.X,
+            _player.Position.Y
+        );
 
         var origin = GetRoomOrigin(_currentRoom);
 
@@ -245,43 +249,6 @@ public partial class DungeonManager : Node2D
         {
             TryTransition("north");
         }
-    }
-
-    private void TryCloseEntryShutter()
-    {
-        var room = _pendingEntryRoom;
-        var door = _pendingEntryShutter;
-
-        if (room is null || door is null)
-        {
-            return;
-        }
-
-        var origin = GetRoomOrigin(room);
-        var playerPosition = _player.Position - origin;
-
-        // Wait until the entire 12x12 player collider
-        // is clear of the doorway's blocker.
-        var hasClearedDoor = door.Direction.ToLowerInvariant() switch
-        {
-            "north" => playerPosition.Y > 38.0f,
-            "south" => playerPosition.Y < DungeonRoomGeometry.RoomHeight - 38.0f,
-            "west" => playerPosition.X > 38.0f,
-            "east" => playerPosition.X < DungeonRoomGeometry.RoomWidth - 38.0f,
-            _ => throw new InvalidOperationException(
-                $"Invalid door direction: {door.Direction}"
-            )
-        };
-
-        if (!hasClearedDoor)
-        {
-            return;
-        }
-
-        _state.ResetShutters(room.Id, [door]);
-
-        _pendingEntryRoom = null;
-        _pendingEntryShutter = null;
     }
 
     private void TryTransition(string direction)
@@ -338,44 +305,10 @@ public partial class DungeonManager : Node2D
     )
     {
         var departingRoom = _currentRoom;
-
-        // Any previously pending entry belongs to the
-        // room we're now leaving.
-        _pendingEntryRoom = null;
-        _pendingEntryShutter = null;
-
-        // Find the doorway on the opposite side
-        // of the destination room.
-        var entryDirection = DungeonRoomGeometry.OppositeDirection(
+        var entryShutter = _shutterEntryController.PrepareEntry(
+            destination,
             direction
         );
-
-        var entryDoor = destination.Doors.Find(door =>
-            string.Equals(
-                door.Direction,
-                entryDirection,
-                StringComparison.OrdinalIgnoreCase
-            )
-        );
-
-        // A closed incoming shutter needs to allow passage.
-        DoorData? entryShutter = null;
-
-        if (entryDoor is not null &&
-            string.Equals(
-                entryDoor.Type,
-                "shutter",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            entryShutter = entryDoor;
-
-            // Normally the shutter is already open when
-            // returning through it. This is a safeguard.
-            if (!_state.IsDoorOpen(destination.Id, entryDoor))
-            {
-                _state.TryOpenShutter(destination.Id, entryDoor);
-            }
-        }
 
         _isTransitioning = true;
 
@@ -427,11 +360,10 @@ public partial class DungeonManager : Node2D
 
             _currentRoom = destination;
 
-            if (entryShutter is not null)
-            {
-                _pendingEntryRoom = destination;
-                _pendingEntryShutter = entryShutter;
-            }
+            _shutterEntryController.BeginEntry(
+                destination,
+                entryShutter
+            );
 
             _player.Velocity = Vector2.Zero;
             _player.SetPhysicsProcess(true);
