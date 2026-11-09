@@ -3,14 +3,11 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using ZeldaRemake.Geometry;
 using ZeldaRemake.Models;
 
 public partial class DungeonManager : Node2D
 {
-    private const int RoomWidth = 256;
-    private const int RoomHeight = 176;
-    private const int HudHeight = 64;
-
     private const float TransitionDuration = 0.6f;
 
     [Export]
@@ -205,18 +202,20 @@ public partial class DungeonManager : Node2D
 
     private static Vector2 GetRoomOrigin(RoomData room)
     {
-        return new Vector2(
-            room.Position.X * RoomWidth,
-            room.Position.Y * RoomHeight + HudHeight
+        var origin = DungeonRoomGeometry.GetRoomOrigin(
+            room.Position
         );
+
+        return new Vector2(origin.X, origin.Y);
     }
 
     private static Vector2 GetCameraPosition(RoomData room)
     {
-        return new Vector2(
-            room.Position.X * RoomWidth + RoomWidth / 2.0f,
-            room.Position.Y * RoomHeight + 120
+        var position = DungeonRoomGeometry.GetCameraPosition(
+            room.Position
         );
+
+        return new Vector2(position.X, position.Y);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -230,21 +229,21 @@ public partial class DungeonManager : Node2D
 
         var origin = GetRoomOrigin(_currentRoom);
 
-        if (_player.Position.X >= origin.X + RoomWidth)
+        if (_player.Position.X >= origin.X + DungeonRoomGeometry.RoomWidth)
         {
-            TryTransition("east", new Vector2I(1, 0));
+            TryTransition("east");
         }
         else if (_player.Position.X <= origin.X)
         {
-            TryTransition("west", new Vector2I(-1, 0));
+            TryTransition("west");
         }
-        else if (_player.Position.Y >= origin.Y + RoomHeight)
+        else if (_player.Position.Y >= origin.Y + DungeonRoomGeometry.RoomHeight)
         {
-            TryTransition("south", new Vector2I(0, 1));
+            TryTransition("south");
         }
         else if (_player.Position.Y <= origin.Y)
         {
-            TryTransition("north", new Vector2I(0, -1));
+            TryTransition("north");
         }
     }
 
@@ -266,9 +265,9 @@ public partial class DungeonManager : Node2D
         var hasClearedDoor = door.Direction.ToLowerInvariant() switch
         {
             "north" => playerPosition.Y > 38.0f,
-            "south" => playerPosition.Y < RoomHeight - 38.0f,
+            "south" => playerPosition.Y < DungeonRoomGeometry.RoomHeight - 38.0f,
             "west" => playerPosition.X > 38.0f,
-            "east" => playerPosition.X < RoomWidth - 38.0f,
+            "east" => playerPosition.X < DungeonRoomGeometry.RoomWidth - 38.0f,
             _ => throw new InvalidOperationException(
                 $"Invalid door direction: {door.Direction}"
             )
@@ -285,7 +284,7 @@ public partial class DungeonManager : Node2D
         _pendingEntryShutter = null;
     }
 
-    private void TryTransition(string direction, Vector2I offset)
+    private void TryTransition(string direction)
     {
         foreach (var door in _currentRoom.Doors)
         {
@@ -313,11 +312,11 @@ public partial class DungeonManager : Node2D
                 return;
             }
 
-            var expectedX = _currentRoom.Position.X + offset.X;
-            var expectedY = _currentRoom.Position.Y + offset.Y;
-
-            if (destination.Position.X != expectedX ||
-                destination.Position.Y != expectedY)
+            if (!DungeonRoomGeometry.IsAdjacent(
+                _currentRoom.Position,
+                destination.Position,
+                direction
+            ))
             {
                 GD.PushError(
                     $"Room '{destination.Id}' is not adjacent " +
@@ -347,16 +346,9 @@ public partial class DungeonManager : Node2D
 
         // Find the doorway on the opposite side
         // of the destination room.
-        var entryDirection = direction switch
-        {
-            "north" => "south",
-            "south" => "north",
-            "east" => "west",
-            "west" => "east",
-            _ => throw new InvalidOperationException(
-                $"Invalid direction: {direction}"
-            )
-        };
+        var entryDirection = DungeonRoomGeometry.OppositeDirection(
+            direction
+        );
 
         var entryDoor = destination.Doors.Find(door =>
             string.Equals(
@@ -391,38 +383,17 @@ public partial class DungeonManager : Node2D
         _player.SetPhysicsProcess(false);
         _player.Velocity = Vector2.Zero;
 
-        var origin = GetRoomOrigin(destination);
-        var currentPosition = _player.Position;
+        var entryPosition = DungeonRoomGeometry.GetEntryPosition(
+            destination.Position,
+            direction,
+            _player.Position.X,
+            _player.Position.Y
+        );
 
-        const float entryOffset = 24.0f;
-
-        // Only change the axis we're travelling along.
-        var playerTarget = direction switch
-        {
-            "east" => new Vector2(
-                origin.X + entryOffset,
-                currentPosition.Y
-            ),
-
-            "west" => new Vector2(
-                origin.X + RoomWidth - entryOffset,
-                currentPosition.Y
-            ),
-
-            "south" => new Vector2(
-                currentPosition.X,
-                origin.Y + entryOffset
-            ),
-
-            "north" => new Vector2(
-                currentPosition.X,
-                origin.Y + RoomHeight - entryOffset
-            ),
-
-            _ => throw new InvalidOperationException(
-                $"Invalid transition direction: {direction}"
-            )
-        };
+        var playerTarget = new Vector2(
+            entryPosition.X,
+            entryPosition.Y
+        );
 
         var cameraTarget = GetCameraPosition(destination);
 
