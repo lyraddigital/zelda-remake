@@ -21,6 +21,8 @@ public partial class Room : Node2D
 
     [Export]
     public PackedScene StaircaseScene { get; set; } = null!;
+    public event Action<string, string, string>? StaircaseEntered;
+
     private const int RoomWidthInTiles = 16;
     private const int RoomHeightInTiles = 11;
     private const int PerimeterThickness = 2;
@@ -317,6 +319,22 @@ public partial class Room : Node2D
 
                         staircase.Position = position;
                         container.AddChild(staircase);
+
+                        var destinationRoomId = GetOptionalString(
+                            data,
+                            "destinationRoom"
+                        );
+
+                        staircase.Configure(destinationRoomId);
+
+                        staircase.PlayerEntered += destination =>
+                        {
+                            StaircaseEntered?.Invoke(
+                                room.Id,
+                                data.Id,
+                                destination
+                            );
+                        };
 
                         staircases.Add(data.Id, staircase);
 

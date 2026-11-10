@@ -45,4 +45,8 @@
     <None Include="Features\PushableBlocks\Fixtures\PushableBlockFixture.tscn" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Features\Staircases\" />
+  </ItemGroup>
+
 </Project>

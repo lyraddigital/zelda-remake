@@ -2,8 +2,15 @@
 
 [ext_resource type="Script" uid="uid://dj33fuk2vb70g" path="res://Scripts/Staircase.cs" id="1_rejx4"]
 
-[node name="Staircase" type="AnimatableBody2D" unique_id=1760801831]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_xrivr"]
+size = Vector2(12, 12)
+
+[node name="Staircase" type="Area2D" unique_id=829820189]
+collision_layer = 0
 script = ExtResource("1_rejx4")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=528359571]
+shape = SubResource("RectangleShape2D_xrivr")
 
 [node name="Opening" type="ColorRect" parent="." unique_id=992284558]
 offset_left = -8.0
