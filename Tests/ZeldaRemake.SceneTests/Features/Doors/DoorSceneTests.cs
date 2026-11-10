@@ -378,6 +378,42 @@ public class DoorSceneTests
         }
     }
 
+    [TestCase("open", false)]
+    [TestCase("locked", true)]
+    [TestCase("shutter", true)]
+    public async Task PlayerMovement_WhenApproachingDoor_RespectsPhysicalCollision(
+        string doorType,
+        bool shouldCollide
+    )
+    {
+        // Arrange
+        var (runner, room, _, _, _) = LoadDoor(
+            "north",
+            doorType
+        );
+
+        var player = CreatePlayer(
+            room,
+            new Vector2(128, 58)
+        );
+
+        player.SetPhysicsProcess(false);
+
+        await runner.SimulateFrames(3);
+
+        // Act - test a 64px movement through the doorway.
+        // Link's actual position is not changed.
+        var hasCollision = player.TestMove(
+            player.GlobalTransform,
+            Vector2.Up * 64.0f
+        );
+
+        // Assert
+        AssertBool(
+            hasCollision == shouldCollide
+        ).IsTrue();
+    }
+
     private static (
         ISceneRunner Runner,
         Room Room,
