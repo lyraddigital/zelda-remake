@@ -44,8 +44,10 @@ public class CellarSceneTests
     }
 
 
+
+
     [TestCase]
-    public void Movement_WhenClimbingDownAndUp_RemainsCentred()
+    public async Task Movement_WhenClimbingDownAndUp_RemainsCentred()
     {
         // Arrange
         var runner = ISceneRunner.Load(
@@ -59,19 +61,35 @@ public class CellarSceneTests
 
         var link = cellar.GetNode<ColorRect>("Link");
 
-        cellar.Activate();
+        // The scene test project doesn't define these actions.
+        var createdUp = !InputMap.HasAction("move_up");
+        var createdDown = !InputMap.HasAction("move_down");
 
-        var startingY = link.Position.Y;
+        if (createdUp)
+        {
+            InputMap.AddAction("move_up");
+        }
+
+        if (createdDown)
+        {
+            InputMap.AddAction("move_down");
+        }
 
         try
         {
-            // Act - climb down for a quarter of a second.
-            Input.ActionPress("move_down");
-            cellar._PhysicsProcess(0.25);
+            cellar.Activate();
+
+            var startingY = link.Position.Y;
+
+            // Act - climb down.
+            runner.SimulateActionPress("move_down");
+
+            await runner.AwaitInputProcessed();
+            await runner.SimulateFrames(20);
 
             var descendedY = link.Position.Y;
 
-            // Assert - Link has moved down.
+            // Assert - Link moved down and remains centred.
             AssertBool(descendedY > startingY).IsTrue();
 
             AssertBool(
@@ -82,12 +100,15 @@ public class CellarSceneTests
             ).IsTrue();
 
             // Act - climb back up.
-            Input.ActionRelease("move_down");
-            Input.ActionPress("move_up");
+            runner.SimulateActionRelease("move_down");
+            await runner.AwaitInputProcessed();
 
-            cellar._PhysicsProcess(0.125);
+            runner.SimulateActionPress("move_up");
 
-            // Assert - Link has moved up.
+            await runner.AwaitInputProcessed();
+            await runner.SimulateFrames(10);
+
+            // Assert - Link moved upwards.
             AssertBool(link.Position.Y < descendedY).IsTrue();
 
             AssertBool(
@@ -101,8 +122,20 @@ public class CellarSceneTests
         }
         finally
         {
-            Input.ActionRelease("move_down");
-            Input.ActionRelease("move_up");
+            runner.SimulateActionRelease("move_down");
+            runner.SimulateActionRelease("move_up");
+
+            await runner.AwaitInputProcessed();
+
+            if (createdUp)
+            {
+                InputMap.EraseAction("move_up");
+            }
+
+            if (createdDown)
+            {
+                InputMap.EraseAction("move_down");
+            }
         }
     }
 
