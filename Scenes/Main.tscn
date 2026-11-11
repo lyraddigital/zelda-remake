@@ -19,6 +19,7 @@ position = Vector2(128, 152)
 position = Vector2(128, 120)
 
 [node name="Hud" type="CanvasLayer" parent="." unique_id=1891178265]
+layer = 4
 
 [node name="ColorRect" type="ColorRect" parent="Hud" unique_id=296345007]
 offset_right = 256.0

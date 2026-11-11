@@ -482,8 +482,9 @@ public class DungeonTransitionTests
             // Act - return through the cellar's left ladder.
             var cellarLink = cellar.GetNode<ColorRect>("Link");
 
-            // Link has climbed the stairs and left the screen.
-            cellarLink.Position = new Vector2(-12, 148);
+            // Link has climbed vertically and fully exited
+            // above the 64px gameplay boundary.
+            cellarLink.Position = new Vector2(24, 52);
 
             AssertBool(cellar.TryExit()).IsTrue();
 

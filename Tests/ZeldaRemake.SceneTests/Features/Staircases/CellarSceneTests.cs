@@ -36,9 +36,8 @@ public class CellarSceneTests
         AssertBool(cellar.IsActive).IsTrue();
     }
 
-
     [TestCase]
-    public void TryExit_WhenLinkLeavesScreen_RequestsReturnOnce()
+    public void TryExit_WhenLinkIsStillVisible_DoesNotExit()
     {
         // Arrange
         var runner = ISceneRunner.Load(
@@ -57,19 +56,51 @@ public class CellarSceneTests
 
         cellar.Activate();
 
-        // Link is at the bottom of the staircase.
+        // Bottom of the ladder.
         link.Position = new Vector2(24, 188);
-
         AssertBool(cellar.TryExit()).IsFalse();
 
-        // Link reaches the top of the staircase.
-        link.Position = new Vector2(24, 148);
-
+        // Link has reached the upper gameplay boundary.
+        link.Position = new Vector2(24, 64);
         AssertBool(cellar.TryExit()).IsFalse();
 
-        // Act - Link leaves the screen.
-        link.Position = new Vector2(-12, 148);
+        // One pixel of Link remains in the gameplay area.
+        link.Position = new Vector2(24, 53);
+        AssertBool(cellar.TryExit()).IsFalse();
 
+        // Link is above the screen but not on the ladder.
+        link.Position = new Vector2(48, 52);
+        AssertBool(cellar.TryExit()).IsFalse();
+
+        // Assert
+        AssertBool(exitCount == 0).IsTrue();
+        AssertBool(cellar.IsActive).IsTrue();
+    }
+
+    [TestCase]
+    public void TryExit_WhenLinkLeavesTop_RequestsReturnOnce()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(
+            "res://Scenes/Cellar.tscn"
+        );
+
+        var cellar = runner.Scene() as Cellar
+            ?? throw new InvalidOperationException(
+                "Failed to load cellar scene."
+            );
+
+        var link = cellar.GetNode<ColorRect>("Link");
+
+        var exitCount = 0;
+        cellar.ExitRequested += () => exitCount++;
+
+        cellar.Activate();
+
+        // Link has fully climbed out of the playfield.
+        link.Position = new Vector2(24, 52);
+
+        // Act
         var firstExit = cellar.TryExit();
         var secondExit = cellar.TryExit();
 

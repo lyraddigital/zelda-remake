@@ -47,47 +47,63 @@ public partial class Cellar : CanvasLayer
 
     public override void _PhysicsProcess(double delta)
     {
+        if (!IsActive)
+        {
+            return;
+        }
+
         var position = _link.Position;
-        var distance = (float)delta;
+        var frameDelta = (float)delta;
 
-        var nearLadder = position.X <= LadderAccessX;
+        var horizontal = Input.GetAxis(
+            "move_left",
+            "move_right"
+        );
 
-        if (nearLadder && Input.IsActionPressed("move_up"))
+        var vertical = Input.GetAxis(
+            "move_up",
+            "move_down"
+        );
+
+        var exitY = PlayfieldTop - _link.Size.Y;
+
+        if (position.Y < FloorY - 0.01f)
         {
-            // Climb vertically until Link is fully above
-            // the top of the gameplay area.
+            // Link is already climbing the ladder.
+            // Only vertical movement is permitted.
             position.X = LadderX;
 
-            position.Y = Mathf.MoveToward(
-                position.Y,
-                PlayfieldTop - _link.Size.Y,
-                ClimbSpeed * distance
+            position.Y = Mathf.Clamp(
+                position.Y + vertical * ClimbSpeed * frameDelta,
+                exitY,
+                FloorY
             );
         }
-        else if (nearLadder &&
-                 Input.IsActionPressed("move_down") &&
-                 position.Y < FloorY)
+        else if (vertical < 0.0f &&
+                 position.X <= LadderAccessX)
         {
-            // Allow Link to descend the same staircase.
-            position.X = LadderX;
-
-            position.Y = Mathf.MoveToward(
-                position.Y,
-                FloorY,
-                ClimbSpeed * distance
+            // Align Link with the ladder without teleporting.
+            position.X = Mathf.MoveToward(
+                position.X,
+                LadderX,
+                MovementSpeed * frameDelta
             );
+
+            // Start climbing once aligned.
+            if (Mathf.Abs(position.X - LadderX) < 0.01f)
+            {
+                position.Y = Mathf.MoveToward(
+                    position.Y,
+                    exitY,
+                    ClimbSpeed * frameDelta
+                );
+            }
         }
-        else if (position.Y >= FloorY)
+        else
         {
-            // Horizontal movement is only allowed
-            // at the bottom of the cellar.
-            var horizontal = Input.GetAxis(
-                "move_left",
-                "move_right"
-            );
-
+            // Normal side-view horizontal movement.
             position.X = Mathf.Clamp(
-                position.X + horizontal * MovementSpeed * distance,
+                position.X + horizontal * MovementSpeed * frameDelta,
                 LadderX,
                 MaximumX
             );
@@ -95,7 +111,8 @@ public partial class Cellar : CanvasLayer
 
         _link.Position = position;
 
-        // Exit automatically when the climb is complete.
+        // Return only after Link has completely
+        // disappeared above the playfield.
         TryExit();
     }
 
@@ -104,7 +121,7 @@ public partial class Cellar : CanvasLayer
         var exitY = PlayfieldTop - _link.Size.Y;
 
         if (!IsActive ||
-            Mathf.Abs(_link.Position.X - LadderX) > 1.0f ||
+            Mathf.Abs(_link.Position.X - LadderX) > 0.01f ||
             _link.Position.Y > exitY + 0.01f)
         {
             return false;
