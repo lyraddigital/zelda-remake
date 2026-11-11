@@ -66,9 +66,7 @@ public class StaircaseSceneTests
 
         var roomData = RoomDataFactory.Create();
 
-        roomData.Objects.Add(
-            CreateStaircase("basement_01")
-        );
+        roomData.Objects.Add(CreateStaircase("basement_01"));
 
         roomData.Objects.Add(new RoomObjectData
         {
@@ -104,23 +102,25 @@ public class StaircaseSceneTests
 
         AssertBool(staircase.Visible).IsFalse();
 
-        // Act - step onto the concealed staircase.
+        // Act - enter the hidden staircase area.
         player.Position = staircase.Position;
 
-        await runner.SimulateFrames(3);
+        await runner.SimulateFrames(4);
 
-        // Assert - nothing happens while hidden.
+        // Assert - hidden stairs must not trigger.
         AssertBool(entryCount == 0).IsTrue();
 
-        // Move away before revealing the staircase.
+        // Move Link away.
         player.Position = staircase.Position + new Vector2(32, 0);
 
         await runner.SimulateFrames(3);
 
+        // Reveal the staircase.
         staircase.Reveal();
 
         await runner.SimulateFrames(3);
 
+        // Enter it again.
         player.Position = staircase.Position;
 
         await room.WaitUntilAsync(
@@ -200,6 +200,8 @@ public class StaircaseSceneTests
 
         player.Position = position;
         room.AddChild(player);
+
+        // Keep movement input from interfering with detection.
         player.SetPhysicsProcess(false);
 
         return player;
