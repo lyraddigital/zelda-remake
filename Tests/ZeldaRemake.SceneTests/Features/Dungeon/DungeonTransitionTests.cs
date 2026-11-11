@@ -484,7 +484,7 @@ public class DungeonTransitionTests
 
             // Link has climbed vertically and fully exited
             // above the 64px gameplay boundary.
-            cellarLink.Position = new Vector2(24, 52);
+            cellarLink.Position = new Vector2(26, 52);
 
             AssertBool(cellar.TryExit()).IsTrue();
 

@@ -7,7 +7,9 @@ public partial class Cellar : CanvasLayer
     private const float MovementSpeed = 80.0f;
     private const float ClimbSpeed = 64.0f;
 
-    private const float LadderX = 24.0f;
+    // The ladder extends from X=24 to X=40.
+    // Link must be centred within its 16px width.
+    private const float LadderCenterX = 32.0f;
     private const float LadderAccessX = 38.0f;
 
     private const float FloorY = 188.0f;
@@ -15,6 +17,9 @@ public partial class Cellar : CanvasLayer
     private const float MaximumX = 232.0f;
 
     private ColorRect _link = null!;
+
+    private float LadderLinkX =>
+        LadderCenterX - _link.Size.X / 2.0f;
 
     public string CellarId { get; private set; } = string.Empty;
 
@@ -35,6 +40,12 @@ public partial class Cellar : CanvasLayer
 
     public void Activate()
     {
+        // Link enters the cellar at the top of the ladder.
+        _link.Position = new Vector2(
+            LadderLinkX,
+            PlayfieldTop
+        );
+
         IsActive = true;
         SetPhysicsProcess(true);
     }
@@ -69,9 +80,9 @@ public partial class Cellar : CanvasLayer
 
         if (position.Y < FloorY - 0.01f)
         {
-            // Link is already climbing the ladder.
-            // Only vertical movement is permitted.
-            position.X = LadderX;
+            // Link is on the ladder.
+            // He can climb up or down but not sideways.
+            position.X = LadderLinkX;
 
             position.Y = Mathf.Clamp(
                 position.Y + vertical * ClimbSpeed * frameDelta,
@@ -82,15 +93,14 @@ public partial class Cellar : CanvasLayer
         else if (vertical < 0.0f &&
                  position.X <= LadderAccessX)
         {
-            // Align Link with the ladder without teleporting.
+            // Link approaches the ladder from the floor.
             position.X = Mathf.MoveToward(
                 position.X,
-                LadderX,
+                LadderLinkX,
                 MovementSpeed * frameDelta
             );
 
-            // Start climbing once aligned.
-            if (Mathf.Abs(position.X - LadderX) < 0.01f)
+            if (Mathf.Abs(position.X - LadderLinkX) < 0.01f)
             {
                 position.Y = Mathf.MoveToward(
                     position.Y,
@@ -101,18 +111,18 @@ public partial class Cellar : CanvasLayer
         }
         else
         {
-            // Normal side-view horizontal movement.
+            // Normal horizontal movement on the cellar floor.
             position.X = Mathf.Clamp(
                 position.X + horizontal * MovementSpeed * frameDelta,
-                LadderX,
+                LadderLinkX,
                 MaximumX
             );
         }
 
         _link.Position = position;
 
-        // Return only after Link has completely
-        // disappeared above the playfield.
+        // Exit only after Link has climbed fully above
+        // the gameplay area.
         TryExit();
     }
 
@@ -121,7 +131,7 @@ public partial class Cellar : CanvasLayer
         var exitY = PlayfieldTop - _link.Size.Y;
 
         if (!IsActive ||
-            Mathf.Abs(_link.Position.X - LadderX) > 0.01f ||
+            Mathf.Abs(_link.Position.X - LadderLinkX) > 0.01f ||
             _link.Position.Y > exitY + 0.01f)
         {
             return false;
