@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://l3e7avslk7vb"]
+
+[ext_resource type="Script" uid="uid://b8l6enq0wdai3" path="res://Scripts/Cellar.cs" id="1_gewjg"]
+
+[node name="Cellar" type="CanvasLayer" unique_id=1420164420]
+layer = 2
+script = ExtResource("1_gewjg")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1577227470]
+offset_top = 64.0
+offset_right = 256.0
+offset_bottom = 240.0
+color = Color(0.22352941, 0.29803923, 0.3764706, 1)
+
+[node name="Opening" type="ColorRect" parent="." unique_id=1581153053]
+offset_left = 16.0
+offset_top = 88.0
+offset_right = 240.0
+offset_bottom = 200.0
+color = Color(0.03137255, 0.039215688, 0.05882353, 1)
+
+[node name="Ceiling" type="ColorRect" parent="." unique_id=34388292]
+offset_top = 64.0
+offset_right = 256.0
+offset_bottom = 88.0
+color = Color(0.45490196, 0.5137255, 0.57254905, 1)
+
+[node name="Floor" type="ColorRect" parent="." unique_id=94826553]
+offset_top = 200.0
+offset_right = 256.0
+offset_bottom = 240.0
+color = Color(0.45490196, 0.5137255, 0.57254905, 1)
+
+[node name="Ladder" type="ColorRect" parent="." unique_id=2109910630]
+offset_left = 24.0
+offset_top = 64.0
+offset_right = 40.0
+offset_bottom = 200.0
+color = Color(0.70980394, 0.54509807, 0.25882354, 1)
+
+[node name="Link" type="ColorRect" parent="." unique_id=251303206]
+offset_left = 48.0
+offset_top = 188.0
+offset_right = 60.0
+offset_bottom = 200.0
+color = Color(0.11764706, 0.5647059, 1, 1)

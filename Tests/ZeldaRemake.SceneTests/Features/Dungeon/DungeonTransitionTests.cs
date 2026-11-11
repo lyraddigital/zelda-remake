@@ -366,6 +366,161 @@ public class DungeonTransitionTests
         }
     }
 
+
+    [TestCase]
+    public async Task StaircaseTransition_WhenEnteringAndExiting_ReturnsToDungeon()
+    {
+        // Arrange
+        var dungeonId = $"test_{Guid.NewGuid():N}";
+        var path = $"user://{dungeonId}.json";
+
+        var dungeon = CreateDungeon(
+            dungeonId,
+            "east",
+            1,
+            0
+        );
+
+        var startingRoom = dungeon.Rooms[0];
+
+        startingRoom.Objects.Add(new RoomObjectData
+        {
+            Id = "stairs_01",
+            Type = "staircase",
+            X = 10,
+            Y = 5,
+            Properties = new()
+            {
+                ["destinationRoom"] =
+                    JsonSerializer.SerializeToElement("bow_cellar")
+            }
+        });
+
+        startingRoom.Objects.Add(new RoomObjectData
+        {
+            Id = "block_01",
+            Type = "pushable_block",
+            X = 6,
+            Y = 5,
+            Properties = new()
+            {
+                ["pushDirection"] =
+                    JsonSerializer.SerializeToElement("north"),
+
+                ["revealsStaircase"] =
+                    JsonSerializer.SerializeToElement("stairs_01")
+            }
+        });
+
+        try
+        {
+            WriteDungeon(path, dungeon);
+
+            var (runner, root) = RoomTestFixture.Load();
+            var manager = CreateManager(root, path);
+
+            var player = manager.GetNode<Player>("Player");
+            var camera = manager.GetNode<Camera2D>("Camera2D");
+
+            var room = manager.GetNode<Room>("Rooms/start");
+
+            var objects = room.GetNode<Node2D>("Objects");
+            var staircase = objects.GetChild<Staircase>(0);
+            var block = objects.GetChild<PushableBlock>(1);
+
+            var initialBlockPosition = block.Position;
+            var expectedCameraPosition = camera.Position;
+
+            player.SetPhysicsProcess(false);
+
+            await runner.SimulateFrames(3);
+
+            AssertBool(staircase.Visible).IsFalse();
+
+            // Reveal the staircase using its existing puzzle.
+            block.PushDurationSeconds = 0.05f;
+
+            using var testPlayer = new Player();
+
+            var pushed = block.TryPush(
+                Vector2.Up,
+                testPlayer
+            );
+
+            AssertBool(pushed).IsTrue();
+
+            await root.WaitUntilAsync(
+                () => staircase.Visible,
+                "staircase to be revealed"
+            );
+
+            // Move Link into the staircase detection area.
+            player.GlobalPosition =
+                staircase.GlobalPosition + new Vector2(32, 0);
+
+            await runner.SimulateFrames(3);
+
+            // Act - enter the staircase.
+            player.GlobalPosition = staircase.GlobalPosition;
+
+            await root.WaitUntilAsync(
+                () => manager.GetNodeOrNull<Cellar>("Cellar")?.IsActive == true,
+                "cellar transition to finish",
+                5000
+            );
+
+            var cellar = manager.GetNode<Cellar>("Cellar");
+
+            // Assert - cellar opened and dungeon Link is hidden.
+            AssertBool(cellar.CellarId == "bow_cellar").IsTrue();
+            AssertBool(player.Visible).IsFalse();
+
+            AssertBool(
+                camera.Position.IsEqualApprox(expectedCameraPosition)
+            ).IsTrue();
+
+            // Act - return through the cellar's left ladder.
+            var cellarLink = cellar.GetNode<ColorRect>("Link");
+
+            // Link has climbed the stairs and left the screen.
+            cellarLink.Position = new Vector2(-12, 148);
+
+            AssertBool(cellar.TryExit()).IsTrue();
+
+            var expectedReturnPosition =
+                staircase.GlobalPosition + new Vector2(0, 20);
+
+            await root.WaitUntilAsync(
+                () =>
+                    manager.GetNodeOrNull<Cellar>("Cellar") is null &&
+                    player.Visible &&
+                    player.IsPhysicsProcessing(),
+                "return transition to finish",
+                5000
+            );
+
+            // Assert - Link is back in the original room.
+            AssertBool(
+                player.GlobalPosition.DistanceTo(expectedReturnPosition) < 0.1f
+            ).IsTrue();
+
+            AssertBool(
+                camera.Position.IsEqualApprox(expectedCameraPosition)
+            ).IsTrue();
+
+            // The temporary puzzle resets on return.
+            AssertBool(staircase.Visible).IsFalse();
+
+            AssertBool(
+                block.Position.IsEqualApprox(initialBlockPosition)
+            ).IsTrue();
+        }
+        finally
+        {
+            DeleteTestFile(path);
+        }
+    }
+
     private static async Task CrossDoorAsync(
         Room root,
         Player player,
@@ -557,11 +712,16 @@ public class DungeonTransitionTests
             "res://Scenes/Player.tscn"
         );
 
+        var cellarScene = ResourceLoader.Load<PackedScene>(
+            "res://Scenes/Cellar.tscn"
+        );
+
         var manager = new DungeonManager
         {
             Name = "DungeonManager",
             DungeonPath = dungeonPath,
-            RoomScene = roomScene
+            RoomScene = roomScene,
+            CellarScene = cellarScene
         };
 
         manager.AddChild(new Node2D

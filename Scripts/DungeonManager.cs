@@ -14,6 +14,9 @@ public partial class DungeonManager : Node2D
     public PackedScene RoomScene { get; set; } = null!;
 
     [Export]
+    public PackedScene CellarScene { get; set; } = null!;
+
+    [Export]
     public string DungeonPath { get; set; } = "res://Data/Dungeons/dungeon01.json";
 
     private Node2D _rooms = null!;
@@ -23,6 +26,11 @@ public partial class DungeonManager : Node2D
 
     private DungeonState _state = new();
     private DungeonSaveCoordinator? _saveCoordinator;
+
+    private Cellar? _cellar;
+    private ColorRect _staircaseFade = null!;
+    private string _returnStaircaseId = string.Empty;
+
 
     private RoomData _currentRoom = null!;
     private bool _isTransitioning;
@@ -35,6 +43,8 @@ public partial class DungeonManager : Node2D
         _rooms = GetNode<Node2D>("Rooms");
         _player = GetNode<Player>("Player");
         _camera = GetNode<Camera2D>("Camera2D");
+
+        CreateStaircaseFade();
 
         if (RoomScene is null)
         {
@@ -146,6 +156,8 @@ public partial class DungeonManager : Node2D
 
         _rooms.AddChild(room);
 
+        room.StaircaseEntered += OnStaircaseEntered;
+
         room.LoadLayout(roomData, _state);
 
         GD.Print($"Created room: {roomData.Id}");
@@ -171,7 +183,7 @@ public partial class DungeonManager : Node2D
 
     public override void _PhysicsProcess(double delta)
     {
-        if (_isTransitioning)
+        if (_isTransitioning || _cellar is not null)
         {
             return;
         }
@@ -323,4 +335,162 @@ public partial class DungeonManager : Node2D
             GD.Print($"Entered room: {destination.Id}");
         };
     }
+
+
+    private void CreateStaircaseFade()
+    {
+        var layer = new CanvasLayer
+        {
+            Name = "StaircaseFade",
+            Layer = 3
+        };
+
+        _staircaseFade = new ColorRect
+        {
+            Position = new Vector2(0, 64),
+            Size = new Vector2(256, 176),
+            Color = Colors.Black,
+            Modulate = new Color(1, 1, 1, 0),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+
+        layer.AddChild(_staircaseFade);
+        AddChild(layer);
+    }
+
+    private void FadeStaircase(
+        bool fadeToBlack,
+        Action finished
+    )
+    {
+        var tween = CreateTween();
+
+        // Four discrete brightness steps approximate
+        // the original NES palette transition.
+        for (var step = 1; step <= 4; step++)
+        {
+            var alpha = fadeToBlack
+                ? step * 0.25f
+                : 1.0f - step * 0.25f;
+
+            tween.TweenInterval(0.06f);
+
+            tween.TweenCallback(Callable.From(() =>
+            {
+                _staircaseFade.Modulate = new Color(
+                    1, 1, 1, alpha
+                );
+            }));
+        }
+
+        tween.Finished += finished;
+    }
+
+    private void OnStaircaseEntered(
+        string sourceRoomId,
+        string staircaseId,
+        string cellarId
+    )
+    {
+        if (_isTransitioning ||
+            _cellar is not null ||
+            !string.Equals(
+                sourceRoomId,
+                _currentRoom.Id,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (CellarScene is null)
+        {
+            GD.PushError("Cellar scene has not been assigned.");
+            return;
+        }
+
+        _isTransitioning = true;
+        _returnStaircaseId = staircaseId;
+
+        _player.SetPhysicsProcess(false);
+        _player.Velocity = Vector2.Zero;
+
+        FadeStaircase(true, () =>
+        {
+            // Switch scenes only after the playfield is black.
+            _player.Hide();
+
+            _cellar = CellarScene.Instantiate<Cellar>();
+            _cellar.Name = "Cellar";
+
+            AddChild(_cellar);
+
+            _cellar.Configure(cellarId);
+            _cellar.ExitRequested += OnCellarExitRequested;
+
+            FadeStaircase(false, () =>
+            {
+                _isTransitioning = false;
+                _cellar.Activate();
+            });
+        });
+    }
+
+    private void OnCellarExitRequested()
+    {
+        if (_isTransitioning || _cellar is null)
+        {
+            return;
+        }
+
+        _isTransitioning = true;
+        _cellar.Deactivate();
+
+        FadeStaircase(true, () =>
+        {
+            _cellar.ExitRequested -= OnCellarExitRequested;
+            _cellar.QueueFree();
+            _cellar = null;
+
+            var room = _rooms.GetNode<Room>(_currentRoom.Id);
+
+            var staircaseData = _currentRoom.Objects.Find(
+                obj => string.Equals(
+                    obj.Id,
+                    _returnStaircaseId,
+                    StringComparison.OrdinalIgnoreCase
+                ) &&
+                string.Equals(
+                    obj.Type,
+                    "staircase",
+                    StringComparison.OrdinalIgnoreCase
+                )
+            ) ?? throw new InvalidOperationException(
+                $"Return staircase '{_returnStaircaseId}' not found."
+            );
+
+            // Leaving the cellar resets temporary room puzzles.
+            room.ResetTemporaryState();
+
+            // Return slightly below the staircase so Link
+            // doesn't immediately enter it again.
+            var returnPosition = new Vector2(
+                staircaseData.X * 16 + 8,
+                staircaseData.Y * 16 + 8 + 20
+            );
+
+            _player.GlobalPosition =
+                room.GlobalPosition + returnPosition;
+
+            _player.Show();
+
+            FadeStaircase(false, () =>
+            {
+                _player.Velocity = Vector2.Zero;
+                _player.SetPhysicsProcess(true);
+
+                _isTransitioning = false;
+            });
+        });
+    }
+
 }

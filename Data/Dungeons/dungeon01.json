@@ -72,7 +72,9 @@
 			  "type": "staircase",
 			  "x": 13,
 			  "y": 2,
-			  "properties": {}
+			  "properties": {
+				"destinationRoom": "bow_cellar"
+			  }
 			}
 	  ],
 	  "enemies": []
