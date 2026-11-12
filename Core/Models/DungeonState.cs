@@ -18,6 +18,10 @@ public sealed class DungeonState
         StringComparer.OrdinalIgnoreCase
     );
 
+    private readonly HashSet<string> _ownedItems = new(
+        StringComparer.OrdinalIgnoreCase
+    );
+
     public int Keys { get; private set; }
 
     public event Action? Changed;
@@ -59,7 +63,6 @@ public sealed class DungeonState
             _ => false
         };
     }
-
 
     public bool IsPuzzleCompleted(string roomId, string puzzleId)
     {
@@ -116,7 +119,6 @@ public sealed class DungeonState
         return true;
     }
 
-
     public bool TryOpenShutter(string roomId, DoorData door)
     {
         if (!string.Equals(
@@ -164,6 +166,7 @@ public sealed class DungeonState
         save.CollectedObjects = [.. _collectedObjects];
         save.UnlockedDoors = [.. _unlockedDoors];
         save.CompletedPuzzles = [.. _completedPuzzles];
+        save.OwnedItems = [.. _ownedItems];
     }
 
     public void Restore(DungeonSaveData save)
@@ -179,6 +182,7 @@ public sealed class DungeonState
         _unlockedDoors.Clear();
         _openShutters.Clear();
         _completedPuzzles.Clear();
+        _ownedItems.Clear();
 
         foreach (var id in save.CollectedObjects)
         {
@@ -195,11 +199,43 @@ public sealed class DungeonState
             _completedPuzzles.Add(id);
         }
 
+        foreach (var id in save.OwnedItems)
+        {
+            _ownedItems.Add(id);
+        }
+
         Keys = save.Keys;
 
         Changed?.Invoke();
     }
 
+    public bool HasItem(string itemId)
+    {
+        return _ownedItems.Contains(itemId);
+    }
+
+    public bool TryCollectItem(string locationId, string itemId)
+    {
+        if (string.IsNullOrWhiteSpace(locationId) ||
+            string.IsNullOrWhiteSpace(itemId))
+        {
+            throw new ArgumentException(
+                "Location ID and item ID are required."
+            );
+        }
+
+        if (_ownedItems.Contains(itemId) ||
+            !_collectedObjects.Add($"{locationId}:{itemId}"))
+        {
+            return false;
+        }
+
+        _ownedItems.Add(itemId);
+
+        Changed?.Invoke();
+
+        return true;
+    }
 
     private static string GetDoorId(string roomId, DoorData door)
     {

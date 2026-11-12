@@ -59,4 +59,16 @@ public sealed class DungeonDefinition
             ? room
             : null;
     }
+
+    public CellarData? FindCellar(string cellarId)
+    {
+        return Data.Cellars.Find(cellar =>
+            string.Equals(
+                cellar.Id,
+                cellarId,
+                StringComparison.OrdinalIgnoreCase
+            )
+        );
+    }
+
 }

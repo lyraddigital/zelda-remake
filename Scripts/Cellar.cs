@@ -1,25 +1,41 @@
 
 using Godot;
 using System;
+using ZeldaRemake.Models;
 
 public partial class Cellar : CanvasLayer
 {
     private const float MovementSpeed = 80.0f;
     private const float ClimbSpeed = 64.0f;
 
-    // The ladder extends from X=24 to X=40.
-    // Link must be centred within its 16px width.
-    private const float LadderCenterX = 32.0f;
-    private const float LadderAccessX = 38.0f;
+    private const float LeftLadderCenterX = 32.0f;
+    private const float RightLadderCenterX = 224.0f;
+
+    private const float LeftLadderAccessX = 38.0f;
+    private const float RightLadderAccessX = 206.0f;
 
     private const float FloorY = 188.0f;
     private const float PlayfieldTop = 64.0f;
-    private const float MaximumX = 232.0f;
+    private const float RightLadderTopY = 112.0f;
+
+    private enum LadderSide
+    {
+        Left,
+        Right
+    }
 
     private ColorRect _link = null!;
+    private ColorRect? _treasure;
+    private DungeonState? _state;
+    private string? _itemId;
 
-    private float LadderLinkX =>
-        LadderCenterX - _link.Size.X / 2.0f;
+    private LadderSide _currentLadder = LadderSide.Left;
+
+    private float LeftLinkX =>
+        LeftLadderCenterX - _link.Size.X / 2.0f;
+
+    private float RightLinkX =>
+        RightLadderCenterX - _link.Size.X / 2.0f;
 
     public string CellarId { get; private set; } = string.Empty;
 
@@ -30,22 +46,43 @@ public partial class Cellar : CanvasLayer
     public override void _Ready()
     {
         _link = GetNode<ColorRect>("Link");
+
+        // Set the starting position before the cellar renders.
+        _link.Position = new Vector2(
+            LeftLinkX,
+            PlayfieldTop
+        );
+
         SetPhysicsProcess(false);
     }
 
-    public void Configure(string cellarId)
+    public void Configure(CellarData data, DungeonState state)
     {
-        CellarId = cellarId;
+        if (!string.Equals(
+                data.Type,
+                "item",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(data.ItemId))
+        {
+            throw new InvalidOperationException(
+                $"Unsupported item cellar: '{data.Id}'."
+            );
+        }
+
+        CellarId = data.Id;
+        _itemId = data.ItemId;
+        _state = state;
+
+        CreateRightLadder();
+
+        if (!state.HasItem(_itemId))
+        {
+            CreateTreasure();
+        }
     }
 
     public void Activate()
     {
-        // Link enters the cellar at the top of the ladder.
-        _link.Position = new Vector2(
-            LadderLinkX,
-            PlayfieldTop
-        );
-
         IsActive = true;
         SetPhysicsProcess(true);
     }
@@ -76,54 +113,113 @@ public partial class Cellar : CanvasLayer
             "move_down"
         );
 
-        var exitY = PlayfieldTop - _link.Size.Y;
-
         if (position.Y < FloorY - 0.01f)
         {
-            // Link is on the ladder.
-            // He can climb up or down but not sideways.
-            position.X = LadderLinkX;
+            // Link is already on one of the ladders.
+            var ladderX = _currentLadder == LadderSide.Left
+                ? LeftLinkX
+                : RightLinkX;
+
+            var topY = _currentLadder == LadderSide.Left
+                ? PlayfieldTop - _link.Size.Y
+                : RightLadderTopY;
+
+            position.X = ladderX;
 
             position.Y = Mathf.Clamp(
                 position.Y + vertical * ClimbSpeed * frameDelta,
-                exitY,
+                topY,
                 FloorY
             );
         }
         else if (vertical < 0.0f &&
-                 position.X <= LadderAccessX)
+                 TryFindLadder(position.X, out var ladder))
         {
-            // Link approaches the ladder from the floor.
+            // Align Link with the selected ladder.
+            var ladderX = ladder == LadderSide.Left
+                ? LeftLinkX
+                : RightLinkX;
+
             position.X = Mathf.MoveToward(
                 position.X,
-                LadderLinkX,
+                ladderX,
                 MovementSpeed * frameDelta
             );
 
-            if (Mathf.Abs(position.X - LadderLinkX) < 0.01f)
+            if (Mathf.Abs(position.X - ladderX) < 0.01f)
             {
+                _currentLadder = ladder;
+
+                var topY = ladder == LadderSide.Left
+                    ? PlayfieldTop - _link.Size.Y
+                    : RightLadderTopY;
+
                 position.Y = Mathf.MoveToward(
                     position.Y,
-                    exitY,
+                    topY,
                     ClimbSpeed * frameDelta
                 );
             }
         }
         else
         {
-            // Normal horizontal movement on the cellar floor.
+            // Side-view movement on the cellar floor.
             position.X = Mathf.Clamp(
                 position.X + horizontal * MovementSpeed * frameDelta,
-                LadderLinkX,
-                MaximumX
+                LeftLinkX,
+                RightLinkX
             );
         }
 
         _link.Position = position;
 
-        // Exit only after Link has climbed fully above
-        // the gameplay area.
+        TryCollectTreasure();
         TryExit();
+    }
+
+    private static bool TryFindLadder(
+        float x,
+        out LadderSide ladder
+    )
+    {
+        if (x <= LeftLadderAccessX)
+        {
+            ladder = LadderSide.Left;
+            return true;
+        }
+
+        if (x >= RightLadderAccessX)
+        {
+            ladder = LadderSide.Right;
+            return true;
+        }
+
+        ladder = default;
+        return false;
+    }
+
+    public bool TryCollectTreasure()
+    {
+        if (!IsActive ||
+            _treasure is null ||
+            !_treasure.Visible ||
+            _state is null ||
+            _itemId is null ||
+            !_link.GetRect().Intersects(_treasure.GetRect()))
+        {
+            return false;
+        }
+
+        if (!_state.TryCollectItem(CellarId, _itemId))
+        {
+            return false;
+        }
+
+        _treasure.Hide();
+
+        GD.Print($"Collected item: {_itemId}");
+
+        return true;
     }
 
     public bool TryExit()
@@ -131,7 +227,8 @@ public partial class Cellar : CanvasLayer
         var exitY = PlayfieldTop - _link.Size.Y;
 
         if (!IsActive ||
-            Mathf.Abs(_link.Position.X - LadderLinkX) > 0.01f ||
+            _currentLadder != LadderSide.Left ||
+            Mathf.Abs(_link.Position.X - LeftLinkX) > 0.01f ||
             _link.Position.Y > exitY + 0.01f)
         {
             return false;
@@ -141,5 +238,39 @@ public partial class Cellar : CanvasLayer
         ExitRequested?.Invoke();
 
         return true;
+    }
+
+    private void CreateRightLadder()
+    {
+        var ladder = new ColorRect
+        {
+            Name = "TreasureLadder",
+            Position = new Vector2(216, 112),
+            Size = new Vector2(16, 88),
+            Color = new Color("#B58B42"),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+
+        AddChild(ladder);
+
+        // Keep the player rendered in front of the ladder.
+        MoveChild(ladder, _link.GetIndex());
+    }
+
+    private void CreateTreasure()
+    {
+        _treasure = new ColorRect
+        {
+            Name = "Treasure",
+            Position = new Vector2(218, 104),
+            Size = new Vector2(12, 12),
+            Color = new Color("#F2D35E"),
+            MouseFilter = Control.MouseFilterEnum.Ignore
+        };
+
+        AddChild(_treasure);
+
+        // The player renders over the treasure on contact.
+        MoveChild(_treasure, _link.GetIndex());
     }
 }

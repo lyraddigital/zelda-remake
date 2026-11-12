@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace ZeldaRemake.Models;
 
 public sealed class DungeonData
@@ -10,4 +8,5 @@ public sealed class DungeonData
     public string StartingRoom { get; set; } = string.Empty;
 
     public List<RoomData> Rooms { get; set; } = [];
+    public List<CellarData> Cellars { get; set; } = [];
 }

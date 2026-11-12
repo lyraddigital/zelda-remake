@@ -1,6 +1,3 @@
-
-using System.Collections.Generic;
-
 public sealed class DungeonSaveData
 {
     public int Version { get; set; } = 1;
@@ -14,4 +11,5 @@ public sealed class DungeonSaveData
     public List<string> UnlockedDoors { get; set; } = [];
 
     public List<string> CompletedPuzzles { get; set; } = [];
+    public List<string> OwnedItems { get; set; } = [];
 }

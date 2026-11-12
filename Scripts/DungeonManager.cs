@@ -408,6 +408,14 @@ public partial class DungeonManager : Node2D
             return;
         }
 
+        var cellarData = _definition.FindCellar(cellarId);
+
+        if (cellarData is null)
+        {
+            GD.PushError($"Cellar '{cellarId}' was not found.");
+            return;
+        }
+
         _isTransitioning = true;
         _returnStaircaseId = staircaseId;
 
@@ -424,7 +432,7 @@ public partial class DungeonManager : Node2D
 
             AddChild(_cellar);
 
-            _cellar.Configure(cellarId);
+            _cellar.Configure(cellarData, _state);
             _cellar.ExitRequested += OnCellarExitRequested;
 
             FadeStaircase(false, () =>

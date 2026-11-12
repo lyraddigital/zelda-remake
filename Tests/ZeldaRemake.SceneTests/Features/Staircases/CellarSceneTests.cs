@@ -1,6 +1,7 @@
 
 using GdUnit4;
 using Godot;
+using ZeldaRemake.Models;
 using static GdUnit4.Assertions;
 
 namespace ZeldaRemake.SceneTests.Features.Staircases;
@@ -23,6 +24,11 @@ public class CellarSceneTests
             );
 
         var link = cellar.GetNode<ColorRect>("Link");
+
+        // Link must already be correctly positioned before activation.
+        AssertBool(
+            link.Position.IsEqualApprox(new Vector2(26, 64))
+        ).IsTrue();
 
         // Act
         cellar.Activate();
@@ -212,5 +218,108 @@ public class CellarSceneTests
         AssertBool(secondExit).IsFalse();
         AssertBool(exitCount == 1).IsTrue();
         AssertBool(cellar.IsActive).IsFalse();
+    }
+
+
+    [TestCase]
+    public void Bow_WhenTouched_IsCollectedOnlyOnce()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(
+            "res://Scenes/Cellar.tscn"
+        );
+
+        var cellar = runner.Scene() as Cellar
+            ?? throw new InvalidOperationException(
+                "Failed to load cellar scene."
+            );
+
+        var state = new DungeonState();
+
+        cellar.Configure(
+            new CellarData
+            {
+                Id = "bow_cellar",
+                Type = "item",
+                ItemId = "bow"
+            },
+            state
+        );
+
+        var link = cellar.GetNode<ColorRect>("Link");
+        var treasure = cellar.GetNode<ColorRect>("Treasure");
+
+        cellar.Activate();
+
+        // Link reaches the Bow at the top of the right ladder.
+        link.Position = new Vector2(218, 112);
+
+        // Act
+        var firstPickup = cellar.TryCollectTreasure();
+        var secondPickup = cellar.TryCollectTreasure();
+
+        // Assert
+        AssertBool(firstPickup).IsTrue();
+        AssertBool(secondPickup).IsFalse();
+
+        AssertBool(state.HasItem("bow")).IsTrue();
+        AssertBool(
+            state.IsObjectCollected("bow_cellar", "bow")
+        ).IsTrue();
+
+        AssertBool(treasure.Visible).IsFalse();
+
+        // The inventory is included in the save data.
+        var save = new DungeonSaveData
+        {
+            DungeonId = "test_dungeon"
+        };
+
+        state.CopyTo(save);
+
+        AssertBool(save.OwnedItems.Contains("bow")).IsTrue();
+    }
+
+
+    [TestCase]
+    public void Bow_WhenAlreadyOwned_DoesNotReappear()
+    {
+        // Arrange - simulate loading a saved game.
+        var save = new DungeonSaveData
+        {
+            DungeonId = "test_dungeon",
+            OwnedItems = ["bow"],
+            CollectedObjects = ["bow_cellar:bow"]
+        };
+
+        var state = new DungeonState();
+        state.Restore(save);
+
+        var runner = ISceneRunner.Load(
+            "res://Scenes/Cellar.tscn"
+        );
+
+        var cellar = runner.Scene() as Cellar
+            ?? throw new InvalidOperationException(
+                "Failed to load cellar scene."
+            );
+
+        // Act
+        cellar.Configure(
+            new CellarData
+            {
+                Id = "bow_cellar",
+                Type = "item",
+                ItemId = "bow"
+            },
+            state
+        );
+
+        // Assert
+        AssertBool(state.HasItem("bow")).IsTrue();
+
+        AssertBool(
+            cellar.GetNodeOrNull<ColorRect>("Treasure") is null
+        ).IsTrue();
     }
 }

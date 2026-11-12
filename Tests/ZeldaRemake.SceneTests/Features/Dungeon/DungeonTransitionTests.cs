@@ -1,4 +1,3 @@
-
 using GdUnit4;
 using Godot;
 using System.Text.Json;
@@ -366,13 +365,13 @@ public class DungeonTransitionTests
         }
     }
 
-
     [TestCase]
     public async Task StaircaseTransition_WhenEnteringAndExiting_ReturnsToDungeon()
     {
         // Arrange
         var dungeonId = $"test_{Guid.NewGuid():N}";
         var path = $"user://{dungeonId}.json";
+        var savePath = $"user://Saves/{dungeonId}.json";
 
         var dungeon = CreateDungeon(
             dungeonId,
@@ -380,6 +379,13 @@ public class DungeonTransitionTests
             1,
             0
         );
+
+        dungeon.Cellars.Add(new CellarData
+        {
+            Id = "bow_cellar",
+            Type = "item",
+            ItemId = "bow"
+        });
 
         var startingRoom = dungeon.Rooms[0];
 
@@ -479,17 +485,29 @@ public class DungeonTransitionTests
                 camera.Position.IsEqualApprox(expectedCameraPosition)
             ).IsTrue();
 
-            // Act - return through the cellar's left ladder.
+            // Collect the Bow before returning upstairs.
+            var treasure = cellar.GetNode<ColorRect>("Treasure");
             var cellarLink = cellar.GetNode<ColorRect>("Link");
 
-            // Link has climbed vertically and fully exited
-            // above the 64px gameplay boundary.
-            cellarLink.Position = new Vector2(26, 52);
+            cellarLink.Position = new Vector2(218, 112);
 
-            AssertBool(cellar.TryExit()).IsTrue();
+            AssertBool(cellar.TryCollectTreasure()).IsTrue();
+            AssertBool(treasure.Visible).IsFalse();
 
+            // Collection should automatically trigger a save.
+            var savedGame = DungeonSaveService.Load(dungeonId);
+
+            AssertBool(
+                savedGame is not null &&
+                savedGame.OwnedItems.Contains("bow")
+            ).IsTrue();
+
+            // Return to the original dungeon room.
             var expectedReturnPosition =
                 staircase.GlobalPosition + new Vector2(0, 20);
+
+            cellarLink.Position = new Vector2(26, 52);
+            AssertBool(cellar.TryExit()).IsTrue();
 
             await root.WaitUntilAsync(
                 () =>
@@ -500,7 +518,7 @@ public class DungeonTransitionTests
                 5000
             );
 
-            // Assert - Link is back in the original room.
+            // Link returns to the same room and staircase.
             AssertBool(
                 player.GlobalPosition.DistanceTo(expectedReturnPosition) < 0.1f
             ).IsTrue();
@@ -509,7 +527,7 @@ public class DungeonTransitionTests
                 camera.Position.IsEqualApprox(expectedCameraPosition)
             ).IsTrue();
 
-            // The temporary puzzle resets on return.
+            // The temporary puzzle resets when Link leaves the cellar.
             AssertBool(staircase.Visible).IsFalse();
 
             AssertBool(
@@ -519,6 +537,7 @@ public class DungeonTransitionTests
         finally
         {
             DeleteTestFile(path);
+            DeleteTestFile(savePath);
         }
     }
 
