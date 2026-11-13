@@ -251,8 +251,8 @@ public class CellarSceneTests
 
         cellar.Activate();
 
-        // Link reaches the Bow at the top of the right ladder.
-        link.Position = new Vector2(218, 112);
+        // Link reaches the Bow
+        link.Position = new Vector2(204, 164);
 
         // Act
         var firstPickup = cellar.TryCollectTreasure();

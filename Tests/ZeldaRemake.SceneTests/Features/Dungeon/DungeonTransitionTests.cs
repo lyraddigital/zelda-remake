@@ -489,7 +489,7 @@ public class DungeonTransitionTests
             var treasure = cellar.GetNode<ColorRect>("Treasure");
             var cellarLink = cellar.GetNode<ColorRect>("Link");
 
-            cellarLink.Position = new Vector2(218, 112);
+            cellarLink.Position = new Vector2(204, 164);
 
             AssertBool(cellar.TryCollectTreasure()).IsTrue();
             AssertBool(treasure.Visible).IsFalse();

@@ -9,14 +9,16 @@ public partial class Cellar : CanvasLayer
     private const float ClimbSpeed = 64.0f;
 
     private const float LeftLadderCenterX = 32.0f;
-    private const float RightLadderCenterX = 224.0f;
+    private const float RightLadderCenterX = 176.0f;
 
     private const float LeftLadderAccessX = 38.0f;
-    private const float RightLadderAccessX = 206.0f;
+    private const float RightLadderAccessX = 160.0f;
 
     private const float FloorY = 188.0f;
     private const float PlayfieldTop = 64.0f;
-    private const float RightLadderTopY = 112.0f;
+
+    private const float RightLadderTopY = 164.0f;
+    private const float RightPlatformMaxX = 228.0f;
 
     private enum LadderSide
     {
@@ -47,7 +49,7 @@ public partial class Cellar : CanvasLayer
     {
         _link = GetNode<ColorRect>("Link");
 
-        // Set the starting position before the cellar renders.
+        // Link enters at the top of the left staircase.
         _link.Position = new Vector2(
             LeftLinkX,
             PlayfieldTop
@@ -73,7 +75,7 @@ public partial class Cellar : CanvasLayer
         _itemId = data.ItemId;
         _state = state;
 
-        CreateRightLadder();
+        CreateBackdrop();
 
         if (!state.HasItem(_itemId))
         {
@@ -113,9 +115,34 @@ public partial class Cellar : CanvasLayer
             "move_down"
         );
 
-        if (position.Y < FloorY - 0.01f)
+        if (_currentLadder == LadderSide.Right &&
+            position.Y <= RightLadderTopY + 0.01f &&
+            position.X >= RightLinkX - 0.01f)
         {
-            // Link is already on one of the ladders.
+            // Link is in the raised treasure compartment.
+            if (position.X <= RightLinkX + 0.01f &&
+                vertical > 0.0f)
+            {
+                // Descend the short ladder.
+                position.Y = Mathf.MoveToward(
+                    position.Y,
+                    FloorY,
+                    ClimbSpeed * frameDelta
+                );
+            }
+            else
+            {
+                // Walk along the raised platform.
+                position.X = Mathf.Clamp(
+                    position.X + horizontal * MovementSpeed * frameDelta,
+                    RightLinkX,
+                    RightPlatformMaxX
+                );
+            }
+        }
+        else if (position.Y < FloorY - 0.01f)
+        {
+            // Link is climbing either staircase.
             var ladderX = _currentLadder == LadderSide.Left
                 ? LeftLinkX
                 : RightLinkX;
@@ -135,7 +162,7 @@ public partial class Cellar : CanvasLayer
         else if (vertical < 0.0f &&
                  TryFindLadder(position.X, out var ladder))
         {
-            // Align Link with the selected ladder.
+            // Align Link with a ladder before climbing.
             var ladderX = ladder == LadderSide.Left
                 ? LeftLinkX
                 : RightLinkX;
@@ -163,7 +190,7 @@ public partial class Cellar : CanvasLayer
         }
         else
         {
-            // Side-view movement on the cellar floor.
+            // Horizontal movement along the main passage.
             position.X = Mathf.Clamp(
                 position.X + horizontal * MovementSpeed * frameDelta,
                 LeftLinkX,
@@ -240,21 +267,28 @@ public partial class Cellar : CanvasLayer
         return true;
     }
 
-    private void CreateRightLadder()
+    private void CreateBackdrop()
     {
-        var ladder = new ColorRect
+        // Hide the temporary flat-colour scene geometry.
+        foreach (var name in new[]
         {
-            Name = "TreasureLadder",
-            Position = new Vector2(216, 112),
-            Size = new Vector2(16, 88),
-            Color = new Color("#B58B42"),
-            MouseFilter = Control.MouseFilterEnum.Ignore
+            "Background",
+            "Opening",
+            "Ceiling",
+            "Floor",
+            "Ladder"
+        })
+        {
+            GetNode<ColorRect>(name).Hide();
+        }
+
+        var backdrop = new ItemCellarBackdrop
+        {
+            Name = "ItemCellarBackdrop"
         };
 
-        AddChild(ladder);
-
-        // Keep the player rendered in front of the ladder.
-        MoveChild(ladder, _link.GetIndex());
+        AddChild(backdrop);
+        MoveChild(backdrop, 0);
     }
 
     private void CreateTreasure()
@@ -262,7 +296,7 @@ public partial class Cellar : CanvasLayer
         _treasure = new ColorRect
         {
             Name = "Treasure",
-            Position = new Vector2(218, 104),
+            Position = new Vector2(204, 156),
             Size = new Vector2(12, 12),
             Color = new Color("#F2D35E"),
             MouseFilter = Control.MouseFilterEnum.Ignore
@@ -270,7 +304,7 @@ public partial class Cellar : CanvasLayer
 
         AddChild(_treasure);
 
-        // The player renders over the treasure on contact.
+        // Render Link in front of the treasure.
         MoveChild(_treasure, _link.GetIndex());
     }
 }

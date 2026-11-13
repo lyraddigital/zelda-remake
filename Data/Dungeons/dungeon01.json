@@ -27,13 +27,6 @@
 		  "height": 1
 		}
 	  ],
-	  "cellars": [
-		{
-			"id": "bow_cellar",
-			"type": "item",
-			"itemId": "bow"
-		}
-	  ],
 	  "doors": [
 		{
 		  "direction": "east",
@@ -137,5 +130,12 @@
 	  "enemies": []
 	}
 
+  ],
+  "cellars": [
+	{
+		"id": "bow_cellar",
+		"type": "item",
+		"itemId": "bow"
+	}
   ]
 }
