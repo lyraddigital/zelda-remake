@@ -54,7 +54,3 @@ shape = SubResource("RectangleShape2D_wp7uo")
 collision_layer = 2
 collision_mask = 2
 script = null
-
-[node name="ColorRect" parent="Link" index="1" unique_id=891672248]
-offset_right = -6.0
-offset_bottom = -6.0
