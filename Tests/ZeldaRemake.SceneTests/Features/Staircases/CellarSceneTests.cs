@@ -226,7 +226,7 @@ public class CellarSceneTests
     {
         // Arrange
         var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
+            "res://Scenes/ItemCellar.tscn"
         );
 
         var cellar = runner.Scene() as Cellar
@@ -252,7 +252,7 @@ public class CellarSceneTests
         cellar.Activate();
 
         // Link reaches the Bow
-        link.Position = new Vector2(204, 164);
+        link.Position = treasure.Position;
 
         // Act
         var firstPickup = cellar.TryCollectTreasure();
@@ -296,7 +296,7 @@ public class CellarSceneTests
         state.Restore(save);
 
         var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
+            "res://Scenes/ItemCellar.tscn"
         );
 
         var cellar = runner.Scene() as Cellar
@@ -319,7 +319,7 @@ public class CellarSceneTests
         AssertBool(state.HasItem("bow")).IsTrue();
 
         AssertBool(
-            cellar.GetNodeOrNull<ColorRect>("Treasure") is null
-        ).IsTrue();
+            cellar.GetNode<ColorRect>("Treasure").Visible
+        ).IsFalse();
     }
 }

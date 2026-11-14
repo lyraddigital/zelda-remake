@@ -489,7 +489,7 @@ public class DungeonTransitionTests
             var treasure = cellar.GetNode<ColorRect>("Treasure");
             var cellarLink = cellar.GetNode<ColorRect>("Link");
 
-            cellarLink.Position = new Vector2(204, 164);
+            cellarLink.Position = treasure.Position;
 
             AssertBool(cellar.TryCollectTreasure()).IsTrue();
             AssertBool(treasure.Visible).IsFalse();
@@ -733,7 +733,7 @@ public class DungeonTransitionTests
         );
 
         var cellarScene = ResourceLoader.Load<PackedScene>(
-            "res://Scenes/Cellar.tscn"
+            "res://Scenes/ItemCellar.tscn"
         );
 
         var manager = new DungeonManager

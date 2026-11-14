@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://46263vn3gsn8"]
 
 [ext_resource type="PackedScene" uid="uid://l3e7avslk7vb" path="res://Scenes/Cellar.tscn" id="1_hccs0"]
+[ext_resource type="TileSet" uid="uid://b3ifd3yom78vv" path="res://Assets/CellarTiles.tres" id="2_wp7uo"]
 
 [node name="Cellar" unique_id=1420164420 instance=ExtResource("1_hccs0")]
 
@@ -11,10 +12,14 @@ offset_bottom = 240.0
 color = Color(0.03137255, 0.03137255, 0.05490196, 1)
 
 [node name="Brickwork" type="TileMapLayer" parent="." index="1" unique_id=236073507]
+texture_filter = 1
+tile_set = ExtResource("2_wp7uo")
 
 [node name="Ladders" type="TileMapLayer" parent="." index="2" unique_id=1196714679]
+texture_filter = 1
+tile_set = ExtResource("2_wp7uo")
 
-[node name="Treasure" type="ColorRect" parent="." index="4" unique_id=766115532]
+[node name="Treasure" type="ColorRect" parent="." index="3" unique_id=766115532]
 offset_left = 136.0
 offset_top = 136.0
 offset_right = 148.0

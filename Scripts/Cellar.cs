@@ -75,12 +75,11 @@ public partial class Cellar : CanvasLayer
         _itemId = data.ItemId;
         _state = state;
 
-        CreateBackdrop();
+        // Treasure already exists in ItemCellar.tscn.
+        _treasure = GetNode<ColorRect>("Treasure");
 
-        if (!state.HasItem(_itemId))
-        {
-            CreateTreasure();
-        }
+        // Preserve the collected item state.
+        _treasure.Visible = !state.HasItem(_itemId);
     }
 
     public void Activate()
@@ -271,46 +270,5 @@ public partial class Cellar : CanvasLayer
         ExitRequested?.Invoke();
 
         return true;
-    }
-
-    private void CreateBackdrop()
-    {
-        // Hide the temporary flat-colour scene geometry.
-        foreach (var name in new[]
-        {
-            "Background",
-            "Opening",
-            "Ceiling",
-            "Floor",
-            "Ladder"
-        })
-        {
-            GetNode<ColorRect>(name).Hide();
-        }
-
-        var backdrop = new ItemCellarBackdrop
-        {
-            Name = "ItemCellarBackdrop"
-        };
-
-        AddChild(backdrop);
-        MoveChild(backdrop, 0);
-    }
-
-    private void CreateTreasure()
-    {
-        _treasure = new ColorRect
-        {
-            Name = "Treasure",
-            Position = new Vector2(196, 164),
-            Size = new Vector2(12, 12),
-            Color = new Color("#F2D35E"),
-            MouseFilter = Control.MouseFilterEnum.Ignore
-        };
-
-        AddChild(_treasure);
-
-        // Render Link in front of the treasure.
-        MoveChild(_treasure, _link.GetIndex());
     }
 }
