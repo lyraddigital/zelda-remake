@@ -18,7 +18,7 @@ public partial class ItemCellarBackdrop : Control
 
     public override void _Draw()
     {
-        // Stone walls filling the playable area.
+        // Solid stone structure beneath the HUD.
         DrawRect(
             new Rect2(0, 64, 256, 176),
             Stone
@@ -26,38 +26,43 @@ public partial class ItemCellarBackdrop : Control
 
         DrawBrickPattern();
 
-        // Main underground passage.
+        // Lower passage: 48px high, ending at the
+        // staircase into the treasure compartment.
         DrawRect(
-            new Rect2(16, 176, 224, 24),
+            new Rect2(16, 176, 144, 48),
             Darkness
         );
 
-        // Smaller raised room containing the Bow.
+        // Raised Bow compartment, cut into the stone.
         DrawRect(
-            new Rect2(144, 128, 96, 48),
+            new Rect2(128, 116, 112, 60),
             Darkness
         );
 
-        // Raised floor, leaving an opening for the ladder.
+        // The compartment floor has an opening
+        // for the ladder at X=144..160.
         DrawRect(
-            new Rect2(144, 176, 24, 16),
+            new Rect2(128, 176, 16, 16),
             Stone
         );
 
         DrawRect(
-            new Rect2(184, 176, 56, 16),
+            new Rect2(160, 176, 80, 16),
             Stone
         );
 
-        // Long entrance staircase on the left.
+        // Long staircase connecting to the dungeon.
         DrawStaircase(
-            new Rect2(24, 64, 16, 136),
+            new Rect2(24, 64, 16, 160),
             Stairs
         );
 
-        // Short ladder into the treasure compartment.
+        // Treasure ladder spans the lower passage,
+        // the platform opening, and the upper chamber.
+        // Draw it last so it remains visible over
+        // the platform edge.
         DrawStaircase(
-            new Rect2(168, 164, 16, 36),
+            new Rect2(144, 148, 16, 76),
             Ladder
         );
     }

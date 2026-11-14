@@ -204,6 +204,7 @@ public partial class Cellar : CanvasLayer
         TryExit();
     }
 
+
     private static bool TryFindLadder(
         float x,
         out LadderSide ladder
@@ -215,7 +216,11 @@ public partial class Cellar : CanvasLayer
             return true;
         }
 
-        if (x >= RightLadderAccessX)
+        // Link must approach the treasure ladder.
+        // Holding Up from anywhere else in the
+        // compartment must not pull him towards it.
+        if (x >= RightLadderAccessX &&
+            x <= RightLadderCenterX + 10.0f)
         {
             ladder = LadderSide.Right;
             return true;
@@ -224,6 +229,7 @@ public partial class Cellar : CanvasLayer
         ladder = default;
         return false;
     }
+
 
     public bool TryCollectTreasure()
     {
@@ -296,7 +302,7 @@ public partial class Cellar : CanvasLayer
         _treasure = new ColorRect
         {
             Name = "Treasure",
-            Position = new Vector2(204, 156),
+            Position = new Vector2(196, 164),
             Size = new Vector2(12, 12),
             Color = new Color("#F2D35E"),
             MouseFilter = Control.MouseFilterEnum.Ignore
