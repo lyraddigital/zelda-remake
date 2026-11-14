@@ -1,14 +1,24 @@
 [gd_scene format=3 uid="uid://l3e7avslk7vb"]
 
 [ext_resource type="Script" uid="uid://b8l6enq0wdai3" path="res://Scripts/Cellar.cs" id="1_gewjg"]
+[ext_resource type="Script" uid="uid://3n2fn3jgp8u3" path="res://Scripts/Player.cs" id="2_id0kw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_id0kw"]
+size = Vector2(12, 12)
 
 [node name="Cellar" type="CanvasLayer" unique_id=1420164420]
 layer = 2
 script = ExtResource("1_gewjg")
 
-[node name="Link" type="ColorRect" parent="." unique_id=251303206]
-offset_left = 48.0
-offset_top = 188.0
-offset_right = 60.0
-offset_bottom = 200.0
+[node name="Link" type="CharacterBody2D" parent="." unique_id=728348338]
+script = ExtResource("2_id0kw")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Link" unique_id=1994865540]
+shape = SubResource("RectangleShape2D_id0kw")
+
+[node name="ColorRect" type="ColorRect" parent="Link" unique_id=891672248]
+offset_left = -6.0
+offset_top = -6.0
+offset_right = 6.0
+offset_bottom = 6.0
 color = Color(0.11764706, 0.5647059, 1, 1)

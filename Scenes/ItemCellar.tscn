@@ -34,13 +34,7 @@ offset_right = 148.0
 offset_bottom = 148.0
 color = Color(0.9490196, 0.827451, 0.36862746, 1)
 
-[node name="Link" parent="." index="4" unique_id=251303206]
-offset_left = 79.0
-offset_top = 203.0
-offset_right = 91.0
-offset_bottom = 215.0
-
-[node name="LeftLadderTrigger" type="Area2D" parent="." index="5" unique_id=325384820]
+[node name="LeftLadderTrigger" type="Area2D" parent="." index="4" unique_id=325384820]
 position = Vector2(56, 136)
 collision_layer = 0
 collision_mask = 2
@@ -48,10 +42,16 @@ collision_mask = 2
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LeftLadderTrigger" index="0" unique_id=242055700]
 shape = SubResource("RectangleShape2D_hi7xg")
 
-[node name="RightLadderTrigger" type="Area2D" parent="." index="6" unique_id=202652989]
+[node name="RightLadderTrigger" type="Area2D" parent="." index="5" unique_id=202652989]
 position = Vector2(184, 178)
 collision_layer = 0
 collision_mask = 2
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="RightLadderTrigger" index="0" unique_id=486193309]
 shape = SubResource("RectangleShape2D_wp7uo")
+
+[node name="ColorRect" parent="Link" parent_id_path=PackedInt32Array(728348338) index="1" unique_id=891672248]
+offset_left = 50.0
+offset_top = 64.0
+offset_right = 62.0
+offset_bottom = 76.0

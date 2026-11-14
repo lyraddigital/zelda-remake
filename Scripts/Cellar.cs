@@ -20,6 +20,7 @@ public partial class Cellar : CanvasLayer
 
     private DungeonState? _state;
     private string? _itemId;
+    private bool _hasReachedLeftLadderBottom;
 
     public string CellarId { get; private set; } = string.Empty;
 
@@ -31,12 +32,16 @@ public partial class Cellar : CanvasLayer
     {
         _link = GetNode<CharacterBody2D>("Link");
 
-        _leftLadder = GetNode<Area2D>(
+        _leftLadder = GetNodeOrNull<Area2D>(
             "LeftLadderTrigger"
+        ) ?? throw new InvalidOperationException(
+            "Missing LeftLadderTrigger in ItemCellar.tscn."
         );
 
-        _rightLadder = GetNode<Area2D>(
+        _rightLadder = GetNodeOrNull<Area2D>(
             "RightLadderTrigger"
+        ) ?? throw new InvalidOperationException(
+            "Missing RightLadderTrigger in ItemCellar.tscn."
         );
 
         var linkShape = _link.GetNode<CollisionShape2D>(
@@ -85,6 +90,7 @@ public partial class Cellar : CanvasLayer
 
     public void Activate()
     {
+        _hasReachedLeftLadderBottom = false;
         IsActive = true;
         SetPhysicsProcess(true);
     }
@@ -139,6 +145,18 @@ public partial class Cellar : CanvasLayer
             Walk(horizontal);
         }
 
+        if (_leftLadder.OverlapsBody(_link))
+        {
+            var bottomY = _leftLadderBounds.End.Y -
+                _linkHalfHeight;
+
+            if (_link.GlobalPosition.Y >=
+                bottomY - LandingTolerance)
+            {
+                _hasReachedLeftLadderBottom = true;
+            }
+        }
+
         TryCollectTreasure();
         TryExit();
     }
@@ -159,7 +177,10 @@ public partial class Cellar : CanvasLayer
         var bottomY = bounds.End.Y - _linkHalfHeight;
 
         var topY = isEntrance
-            ? bounds.Position.Y - _linkHalfHeight
+            ? bounds.Position.Y +
+                (_hasReachedLeftLadderBottom
+                    ? -_linkHalfHeight
+                    : _linkHalfHeight)
             : bounds.Position.Y + _linkHalfHeight;
 
         var atBottom = position.Y >=
@@ -282,14 +303,17 @@ public partial class Cellar : CanvasLayer
 
     public bool TryExit()
     {
+        if (!IsActive || !_hasReachedLeftLadderBottom)
+        {
+            return false;
+        }
+
         var centreX = _leftLadderBounds.GetCenter().X;
 
-        // Exit once Link has climbed above the playfield.
         var exitY = _leftLadderBounds.Position.Y -
             _linkHalfHeight;
 
-        if (!IsActive ||
-            Mathf.Abs(
+        if (Mathf.Abs(
                 _link.GlobalPosition.X - centreX
             ) > LandingTolerance ||
             _link.GlobalPosition.Y > exitY + 0.01f)
