@@ -7,37 +7,19 @@ public partial class Cellar : CanvasLayer
 {
     private const float MovementSpeed = 80.0f;
     private const float ClimbSpeed = 64.0f;
+    private const float LandingTolerance = 1.0f;
 
-    private const float LeftLadderCenterX = 32.0f;
-    private const float RightLadderCenterX = 176.0f;
+    private CharacterBody2D _link = null!;
+    private ColorRect _treasure = null!;
 
-    private const float LeftLadderAccessX = 38.0f;
-    private const float RightLadderAccessX = 160.0f;
+    private Area2D _leftLadder = null!;
+    private Area2D _rightLadder = null!;
 
-    private const float FloorY = 188.0f;
-    private const float PlayfieldTop = 64.0f;
+    private Rect2 _leftLadderBounds;
+    private float _linkHalfHeight;
 
-    private const float RightLadderTopY = 164.0f;
-    private const float RightPlatformMaxX = 228.0f;
-
-    private enum LadderSide
-    {
-        Left,
-        Right
-    }
-
-    private ColorRect _link = null!;
-    private ColorRect? _treasure;
     private DungeonState? _state;
     private string? _itemId;
-
-    private LadderSide _currentLadder = LadderSide.Left;
-
-    private float LeftLinkX =>
-        LeftLadderCenterX - _link.Size.X / 2.0f;
-
-    private float RightLinkX =>
-        RightLadderCenterX - _link.Size.X / 2.0f;
 
     public string CellarId { get; private set; } = string.Empty;
 
@@ -47,12 +29,34 @@ public partial class Cellar : CanvasLayer
 
     public override void _Ready()
     {
-        _link = GetNode<ColorRect>("Link");
+        _link = GetNode<CharacterBody2D>("Link");
 
-        // Link enters at the top of the left staircase.
-        _link.Position = new Vector2(
-            LeftLinkX,
-            PlayfieldTop
+        _leftLadder = GetNode<Area2D>(
+            "LeftLadderTrigger"
+        );
+
+        _rightLadder = GetNode<Area2D>(
+            "RightLadderTrigger"
+        );
+
+        var linkShape = _link.GetNode<CollisionShape2D>(
+            "CollisionShape2D"
+        ).Shape as RectangleShape2D
+            ?? throw new InvalidOperationException(
+                "Cellar Link requires a RectangleShape2D."
+            );
+
+        _linkHalfHeight = linkShape.Size.Y / 2.0f;
+
+        _leftLadderBounds = GetBounds(_leftLadder);
+
+        _link.MotionMode = CharacterBody2D.MotionModeEnum.Floating;
+        _link.SafeMargin = 0.001f;
+
+        // Spawn at the top of the entrance ladder.
+        _link.GlobalPosition = new Vector2(
+            _leftLadderBounds.GetCenter().X,
+            _leftLadderBounds.Position.Y + _linkHalfHeight
         );
 
         SetPhysicsProcess(false);
@@ -75,10 +79,7 @@ public partial class Cellar : CanvasLayer
         _itemId = data.ItemId;
         _state = state;
 
-        // Treasure already exists in ItemCellar.tscn.
         _treasure = GetNode<ColorRect>("Treasure");
-
-        // Preserve the collected item state.
         _treasure.Visible = !state.HasItem(_itemId);
     }
 
@@ -91,6 +92,7 @@ public partial class Cellar : CanvasLayer
     public void Deactivate()
     {
         IsActive = false;
+        _link.Velocity = Vector2.Zero;
         SetPhysicsProcess(false);
     }
 
@@ -100,9 +102,6 @@ public partial class Cellar : CanvasLayer
         {
             return;
         }
-
-        var position = _link.Position;
-        var frameDelta = (float)delta;
 
         var horizontal = Input.GetAxis(
             "move_left",
@@ -114,130 +113,157 @@ public partial class Cellar : CanvasLayer
             "move_down"
         );
 
-        if (_currentLadder == LadderSide.Right &&
-            position.Y <= RightLadderTopY + 0.01f &&
-            position.X >= RightLinkX - 0.01f)
+        // A trigger decides whether Link is climbing.
+        Area2D? ladder = null;
+
+        if (_leftLadder.OverlapsBody(_link))
         {
-            // Link is in the raised treasure compartment.
-            if (position.X <= RightLinkX + 0.01f &&
-                vertical > 0.0f)
-            {
-                // Descend the short ladder.
-                position.Y = Mathf.MoveToward(
-                    position.Y,
-                    FloorY,
-                    ClimbSpeed * frameDelta
-                );
-            }
-            else
-            {
-                // Walk along the raised platform.
-                position.X = Mathf.Clamp(
-                    position.X + horizontal * MovementSpeed * frameDelta,
-                    RightLinkX,
-                    RightPlatformMaxX
-                );
-            }
+            ladder = _leftLadder;
         }
-        else if (position.Y < FloorY - 0.01f)
+        else if (_rightLadder.OverlapsBody(_link))
         {
-            // Link is climbing either staircase.
-            var ladderX = _currentLadder == LadderSide.Left
-                ? LeftLinkX
-                : RightLinkX;
-
-            var topY = _currentLadder == LadderSide.Left
-                ? PlayfieldTop - _link.Size.Y
-                : RightLadderTopY;
-
-            position.X = ladderX;
-
-            position.Y = Mathf.Clamp(
-                position.Y + vertical * ClimbSpeed * frameDelta,
-                topY,
-                FloorY
-            );
+            ladder = _rightLadder;
         }
-        else if (vertical < 0.0f &&
-                 TryFindLadder(position.X, out var ladder))
+
+        if (ladder is not null)
         {
-            // Align Link with a ladder before climbing.
-            var ladderX = ladder == LadderSide.Left
-                ? LeftLinkX
-                : RightLinkX;
-
-            position.X = Mathf.MoveToward(
-                position.X,
-                ladderX,
-                MovementSpeed * frameDelta
+            MoveOnLadder(
+                ladder,
+                horizontal,
+                vertical,
+                (float)delta
             );
-
-            if (Mathf.Abs(position.X - ladderX) < 0.01f)
-            {
-                _currentLadder = ladder;
-
-                var topY = ladder == LadderSide.Left
-                    ? PlayfieldTop - _link.Size.Y
-                    : RightLadderTopY;
-
-                position.Y = Mathf.MoveToward(
-                    position.Y,
-                    topY,
-                    ClimbSpeed * frameDelta
-                );
-            }
         }
         else
         {
-            // Horizontal movement along the main passage.
-            position.X = Mathf.Clamp(
-                position.X + horizontal * MovementSpeed * frameDelta,
-                LeftLinkX,
-                RightLinkX
-            );
+            Walk(horizontal);
         }
-
-        _link.Position = position;
 
         TryCollectTreasure();
         TryExit();
     }
 
-
-    private static bool TryFindLadder(
-        float x,
-        out LadderSide ladder
+    private void MoveOnLadder(
+        Area2D ladder,
+        float horizontal,
+        float vertical,
+        float delta
     )
     {
-        if (x <= LeftLadderAccessX)
+        var bounds = GetBounds(ladder);
+        var position = _link.GlobalPosition;
+
+        var isEntrance = ladder == _leftLadder;
+
+        // Derive the movement limits from the trigger shape.
+        var bottomY = bounds.End.Y - _linkHalfHeight;
+
+        var topY = isEntrance
+            ? bounds.Position.Y - _linkHalfHeight
+            : bounds.Position.Y + _linkHalfHeight;
+
+        var atBottom = position.Y >=
+            bottomY - LandingTolerance;
+
+        var atUpperChamber = !isEntrance &&
+            position.Y <= topY + LandingTolerance;
+
+        // Horizontal movement is allowed at ladder endpoints.
+        if ((atBottom || atUpperChamber) &&
+            !Mathf.IsZeroApprox(horizontal))
         {
-            ladder = LadderSide.Left;
-            return true;
+            Walk(horizontal);
+            return;
         }
 
-        // Link must approach the treasure ladder.
-        // Holding Up from anywhere else in the
-        // compartment must not pull him towards it.
-        if (x >= RightLadderAccessX &&
-            x <= RightLadderCenterX + 10.0f)
+        // Align with the centre before starting to climb.
+        var centreX = bounds.GetCenter().X;
+
+        if (!Mathf.IsZeroApprox(vertical) &&
+            Mathf.Abs(position.X - centreX) > 0.5f)
         {
-            ladder = LadderSide.Right;
-            return true;
+            var alignedX = Mathf.MoveToward(
+                position.X,
+                centreX,
+                MovementSpeed * delta
+            );
+
+            _link.Velocity = new Vector2(
+                (alignedX - position.X) / delta,
+                0
+            );
+
+            _link.MoveAndSlide();
+            return;
         }
 
-        ladder = default;
-        return false;
+        // While on the ladder, horizontal input is ignored.
+        var nextY = Mathf.Clamp(
+            position.Y + vertical * ClimbSpeed * delta,
+            topY,
+            bottomY
+        );
+
+        _link.Velocity = new Vector2(
+            0,
+            (nextY - position.Y) / delta
+        );
+
+        _link.MoveAndSlide();
     }
 
+    private void Walk(float horizontal)
+    {
+        _link.Velocity = new Vector2(
+            horizontal * MovementSpeed,
+            0
+        );
+
+        _link.MoveAndSlide();
+    }
+
+    private static Rect2 GetBounds(Area2D ladder)
+    {
+        var collision = ladder.GetNode<CollisionShape2D>(
+            "CollisionShape2D"
+        );
+
+        var rectangle = collision.Shape as RectangleShape2D
+            ?? throw new InvalidOperationException(
+                $"{ladder.Name} requires a RectangleShape2D."
+            );
+
+        return new Rect2(
+            collision.GlobalPosition - rectangle.Size / 2.0f,
+            rectangle.Size
+        );
+    }
 
     public bool TryCollectTreasure()
     {
         if (!IsActive ||
-            _treasure is null ||
             !_treasure.Visible ||
             _state is null ||
-            _itemId is null ||
-            !_link.GetRect().Intersects(_treasure.GetRect()))
+            _itemId is null)
+        {
+            return false;
+        }
+
+        var linkShape = _link.GetNode<CollisionShape2D>(
+            "CollisionShape2D"
+        ).Shape as RectangleShape2D;
+
+        if (linkShape is null)
+        {
+            return false;
+        }
+
+        var linkBounds = new Rect2(
+            _link.GlobalPosition - linkShape.Size / 2.0f,
+            linkShape.Size
+        );
+
+        if (!linkBounds.Intersects(_treasure.GetGlobalRect()))
         {
             return false;
         }
@@ -256,12 +282,17 @@ public partial class Cellar : CanvasLayer
 
     public bool TryExit()
     {
-        var exitY = PlayfieldTop - _link.Size.Y;
+        var centreX = _leftLadderBounds.GetCenter().X;
+
+        // Exit once Link has climbed above the playfield.
+        var exitY = _leftLadderBounds.Position.Y -
+            _linkHalfHeight;
 
         if (!IsActive ||
-            _currentLadder != LadderSide.Left ||
-            Mathf.Abs(_link.Position.X - LeftLinkX) > 0.01f ||
-            _link.Position.Y > exitY + 0.01f)
+            Mathf.Abs(
+                _link.GlobalPosition.X - centreX
+            ) > LandingTolerance ||
+            _link.GlobalPosition.Y > exitY + 0.01f)
         {
             return false;
         }
