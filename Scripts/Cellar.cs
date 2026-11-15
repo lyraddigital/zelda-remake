@@ -161,6 +161,7 @@ public partial class Cellar : CanvasLayer
         TryExit();
     }
 
+
     private void MoveOnLadder(
         Area2D ladder,
         float horizontal,
@@ -173,7 +174,6 @@ public partial class Cellar : CanvasLayer
 
         var isEntrance = ladder == _leftLadder;
 
-        // Derive the movement limits from the trigger shape.
         var bottomY = bounds.End.Y - _linkHalfHeight;
 
         var topY = isEntrance
@@ -181,23 +181,49 @@ public partial class Cellar : CanvasLayer
                 (_hasReachedLeftLadderBottom
                     ? -_linkHalfHeight
                     : _linkHalfHeight)
-            : bounds.Position.Y + _linkHalfHeight;
+            : bounds.Position.Y + _linkHalfHeight - 0.1f;
 
         var atBottom = position.Y >=
             bottomY - LandingTolerance;
 
-        var atUpperChamber = !isEntrance &&
-            position.Y <= topY + LandingTolerance;
+        var wantsHorizontal =
+            !Mathf.IsZeroApprox(horizontal);
 
-        // Horizontal movement is allowed at ladder endpoints.
-        if ((atBottom || atUpperChamber) &&
-            !Mathf.IsZeroApprox(horizontal))
+        // Walk away from the bottom of either ladder.
+        if (atBottom && wantsHorizontal)
         {
             Walk(horizontal);
             return;
         }
 
-        // Align with the centre before starting to climb.
+        // Near the top of the short ladder, finish climbing
+        // before allowing horizontal movement.
+        if (!isEntrance &&
+            wantsHorizontal &&
+            position.Y <= topY + 8.0f)
+        {
+            if (position.Y > topY + 0.5f)
+            {
+                var nextY = Mathf.MoveToward(
+                    position.Y,
+                    topY,
+                    ClimbSpeed * delta
+                );
+
+                _link.Velocity = new Vector2(
+                    0,
+                    (nextY - position.Y) / delta
+                );
+
+                _link.MoveAndSlide();
+                return;
+            }
+
+            Walk(horizontal);
+            return;
+        }
+
+        // Centre Link on the ladder before climbing.
         var centreX = bounds.GetCenter().X;
 
         if (!Mathf.IsZeroApprox(vertical) &&
@@ -218,8 +244,8 @@ public partial class Cellar : CanvasLayer
             return;
         }
 
-        // While on the ladder, horizontal input is ignored.
-        var nextY = Mathf.Clamp(
+        // Climb vertically while inside the ladder.
+        var nextPositionY = Mathf.Clamp(
             position.Y + vertical * ClimbSpeed * delta,
             topY,
             bottomY
@@ -227,11 +253,12 @@ public partial class Cellar : CanvasLayer
 
         _link.Velocity = new Vector2(
             0,
-            (nextY - position.Y) / delta
+            (nextPositionY - position.Y) / delta
         );
 
         _link.MoveAndSlide();
     }
+
 
     private void Walk(float horizontal)
     {
