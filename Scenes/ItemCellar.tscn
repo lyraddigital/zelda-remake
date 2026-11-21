@@ -1,9 +1,9 @@
 [gd_scene format=4 uid="uid://46263vn3gsn8"]
-[ext_resource type="PackedScene" path="res://Scenes/Cellar.tscn" id="1_hccs0"]
 
+[ext_resource type="PackedScene" uid="uid://l3e7avslk7vb" path="res://Scenes/Cellar.tscn" id="1_hccs0"]
 [ext_resource type="TileSet" uid="uid://b3ifd3yom78vv" path="res://Assets/CellarTiles.tres" id="2_wp7uo"]
-[ext_resource type="Script" uid="uid://5hwnpyo6y2jb" path="res://Scripts/TreasurePickup.cs" id="3_gp8r2"]
-[ext_resource type="Script" uid="uid://dgb7gbrb43m60" path="res://Scripts/Ladder.cs" id="3_jweng"]
+[ext_resource type="Script" uid="uid://5hwnpyo6y2jb" path="res://Scripts/Pickups/TreasurePickup.cs" id="3_gp8r2"]
+[ext_resource type="Script" uid="uid://dgb7gbrb43m60" path="res://Scripts/Environment/Ladder.cs" id="3_jweng"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_gp8r2"]
 size = Vector2(16, 24)

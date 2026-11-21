@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cmire2wjjivbu"]
 
-[ext_resource type="Script" uid="uid://b4or37fyombmh" path="res://Scripts/DungeonManager.cs" id="1_kln2b"]
+[ext_resource type="Script" uid="uid://b4or37fyombmh" path="res://Scripts/Dungeon/DungeonManager.cs" id="1_kln2b"]
 [ext_resource type="PackedScene" uid="uid://cfjqhy3mo01cf" path="res://Scenes/Room.tscn" id="1_uu6xs"]
 [ext_resource type="PackedScene" uid="uid://dwly5fh4m3ey" path="res://Scenes/Player.tscn" id="2_r0du0"]
 [ext_resource type="PackedScene" uid="uid://46263vn3gsn8" path="res://Scenes/ItemCellar.tscn" id="3_rgh2o"]

@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://1apak1wc4nii"]
 
-[ext_resource type="Script" uid="uid://b4ax0moo4ecfc" path="res://Scripts/KeyPickup.cs" id="1_i72k1"]
+[ext_resource type="Script" uid="uid://b4ax0moo4ecfc" path="res://Scripts/Pickups/KeyPickup.cs" id="1_i72k1"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_cycxl"]
 size = Vector2(12, 12)

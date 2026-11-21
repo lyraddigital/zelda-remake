@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bqsb8ojuux6yd"]
 
-[ext_resource type="Script" uid="uid://bcw7t4k5upuoc" path="res://Scripts/PushableBlock.cs" id="1_sligm"]
+[ext_resource type="Script" uid="uid://bcw7t4k5upuoc" path="res://Scripts/Environment/PushableBlock.cs" id="1_sligm"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_o3a68"]
 size = Vector2(16, 16)

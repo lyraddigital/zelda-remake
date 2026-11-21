@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://bvb8gf8un6jsn"]
 
-[ext_resource type="Script" uid="uid://dj33fuk2vb70g" path="res://Scripts/Staircase.cs" id="1_rejx4"]
+[ext_resource type="Script" uid="uid://dj33fuk2vb70g" path="res://Scripts/Environment/Staircase.cs" id="1_rejx4"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_xrivr"]
 size = Vector2(12, 12)

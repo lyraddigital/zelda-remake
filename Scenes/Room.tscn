@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cfjqhy3mo01cf"]
 
-[ext_resource type="Script" uid="uid://bg8p1tikiws23" path="res://Scripts/Room.cs" id="1_nn86p"]
+[ext_resource type="Script" uid="uid://bg8p1tikiws23" path="res://Scripts/Dungeon/Room.cs" id="1_nn86p"]
 [ext_resource type="PackedScene" uid="uid://bbutmrr4nhtit" path="res://Scenes/SlideDoor.tscn" id="2_uj218"]
 [ext_resource type="PackedScene" uid="uid://chnc05gtd6fhi" path="res://Scenes/VerticalDoor.tscn" id="3_a2si3"]
 [ext_resource type="TileSet" uid="uid://cnflnjck6u1lm" path="res://Assets/DungeonTiles.tres" id="3_uj218"]
