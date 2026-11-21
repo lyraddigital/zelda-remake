@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://l3e7avslk7vb"]
 
-[ext_resource type="Script" uid="uid://b8l6enq0wdai3" path="res://Scripts/Cellar.cs" id="1_gewjg"]
 [ext_resource type="Script" uid="uid://3n2fn3jgp8u3" path="res://Scripts/Player.cs" id="2_id0kw"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_id0kw"]
@@ -8,7 +7,6 @@ size = Vector2(12, 12)
 
 [node name="Cellar" type="CanvasLayer" unique_id=1420164420]
 layer = 2
-script = ExtResource("1_gewjg")
 
 [node name="Link" type="CharacterBody2D" parent="." unique_id=728348338]
 script = ExtResource("2_id0kw")

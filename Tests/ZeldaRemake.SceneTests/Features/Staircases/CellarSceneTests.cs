@@ -1,7 +1,6 @@
 
 using GdUnit4;
 using Godot;
-using ZeldaRemake.Models;
 using static GdUnit4.Assertions;
 
 namespace ZeldaRemake.SceneTests.Features.Staircases;
@@ -10,121 +9,153 @@ namespace ZeldaRemake.SceneTests.Features.Staircases;
 [RequireGodotRuntime]
 public class CellarSceneTests
 {
+    private const string ScenePath =
+        "res://Scenes/ItemCellar.tscn";
+
     [TestCase]
-    public void Activate_StartsLinkAtTopOfCentredLadder()
+    public void SpawnAtEntrance_StartsLinkCentredAtTop()
     {
         // Arrange
-        var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
+        var runner = ISceneRunner.Load(ScenePath);
+        var cellar = runner.Scene();
+
+        var player = cellar.GetNode<Player>("Link");
+        var ladder = cellar.GetNode<Ladder>(
+            "LeftLadderTrigger"
         );
 
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
-
-        var link = cellar.GetNode<ColorRect>("Link");
-
-        // Link must already be correctly positioned before activation.
-        AssertBool(
-            link.Position.IsEqualApprox(new Vector2(26, 64))
-        ).IsTrue();
+        player.SetPhysicsProcess(false);
+        player.MovementMode =
+            PlayerMovementMode.SideView;
 
         // Act
-        cellar.Activate();
+        player.SpawnAtLadder(ladder);
 
-        // Assert - the ladder's centre is X=32.
+        var bounds = ladder.Bounds;
+
+        var expectedPosition = new Vector2(
+            bounds.GetCenter().X,
+            bounds.Position.Y + 6.0f
+        );
+
+        // Assert
         AssertBool(
-            Mathf.IsEqualApprox(
-                link.Position.X + link.Size.X / 2.0f,
-                32.0f
+            player.GlobalPosition.IsEqualApprox(
+                expectedPosition
             )
         ).IsTrue();
 
         AssertBool(
-            Mathf.IsEqualApprox(link.Position.Y, 64.0f)
+            player.ActiveLadder == ladder
         ).IsTrue();
-
-        AssertBool(cellar.TryExit()).IsFalse();
-        AssertBool(cellar.IsActive).IsTrue();
     }
 
-
-
-
     [TestCase]
-    public async Task Movement_WhenClimbingDownAndUp_RemainsCentred()
+    public void EntranceLadder_DoesNotImmediatelyExit()
     {
         // Arrange
-        var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
+        var runner = ISceneRunner.Load(ScenePath);
+        var cellar = runner.Scene();
+
+        var player = cellar.GetNode<Player>("Link");
+        var ladder = cellar.GetNode<Ladder>(
+            "LeftLadderTrigger"
         );
 
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
+        player.SetPhysicsProcess(false);
+        player.SpawnAtLadder(ladder);
 
-        var link = cellar.GetNode<ColorRect>("Link");
+        var topExitCount = 0;
 
-        // The scene test project doesn't define these actions.
-        var createdUp = !InputMap.HasAction("move_up");
-        var createdDown = !InputMap.HasAction("move_down");
-
-        if (createdUp)
+        ladder.PlayerExited += (_, direction) =>
         {
-            InputMap.AddAction("move_up");
-        }
+            if (direction == LadderExitDirection.Top)
+            {
+                topExitCount++;
+            }
+        };
+
+        // Act
+        player.LeaveLadder(ladder);
+
+        // Assert
+        AssertBool(topExitCount == 0).IsTrue();
+    }
+
+    [TestCase]
+    public async Task EntranceLadder_WhenDescendingAndReturning_ExitsAtTop()
+    {
+        // Arrange
+        var runner = ISceneRunner.Load(ScenePath);
+        var cellar = runner.Scene();
+
+        var player = cellar.GetNode<Player>("Link");
+        var ladder = cellar.GetNode<Ladder>(
+            "LeftLadderTrigger"
+        );
+
+        player.MovementMode =
+            PlayerMovementMode.SideView;
+
+        player.SpawnAtLadder(ladder);
+
+        var createdDown =
+            !InputMap.HasAction("move_down");
+
+        var createdUp =
+            !InputMap.HasAction("move_up");
 
         if (createdDown)
         {
             InputMap.AddAction("move_down");
         }
 
+        if (createdUp)
+        {
+            InputMap.AddAction("move_up");
+        }
+
+        var exitCount = 0;
+
+        ladder.PlayerExited += (_, direction) =>
+        {
+            if (direction == LadderExitDirection.Top)
+            {
+                exitCount++;
+            }
+        };
+
         try
         {
-            cellar.Activate();
-
-            var startingY = link.Position.Y;
-
-            // Act - climb down.
+            // Descend to the bottom.
             runner.SimulateActionPress("move_down");
 
             await runner.AwaitInputProcessed();
-            await runner.SimulateFrames(20);
+            await runner.SimulateFrames(160);
 
-            var descendedY = link.Position.Y;
-
-            // Assert - Link moved down and remains centred.
-            AssertBool(descendedY > startingY).IsTrue();
-
-            AssertBool(
-                Mathf.IsEqualApprox(
-                    link.Position.X + link.Size.X / 2.0f,
-                    32.0f
-                )
-            ).IsTrue();
-
-            // Act - climb back up.
             runner.SimulateActionRelease("move_down");
+
             await runner.AwaitInputProcessed();
 
+            AssertBool(
+                player.GlobalPosition.Y >=
+                ladder.Bounds.End.Y - 7.0f
+            ).IsTrue();
+
+            AssertBool(exitCount == 0).IsTrue();
+
+            // Climb back to the entrance.
             runner.SimulateActionPress("move_up");
 
             await runner.AwaitInputProcessed();
-            await runner.SimulateFrames(10);
+            await runner.SimulateFrames(170);
 
-            // Assert - Link moved upwards.
-            AssertBool(link.Position.Y < descendedY).IsTrue();
+            // Assert
+            AssertBool(exitCount == 1).IsTrue();
 
             AssertBool(
-                Mathf.IsEqualApprox(
-                    link.Position.X + link.Size.X / 2.0f,
-                    32.0f
-                )
+                player.ActiveLadder is null
             ).IsTrue();
-
-            AssertBool(cellar.IsActive).IsTrue();
         }
         finally
         {
@@ -133,143 +164,60 @@ public class CellarSceneTests
 
             await runner.AwaitInputProcessed();
 
-            if (createdUp)
-            {
-                InputMap.EraseAction("move_up");
-            }
-
             if (createdDown)
             {
                 InputMap.EraseAction("move_down");
+            }
+
+            if (createdUp)
+            {
+                InputMap.EraseAction("move_up");
             }
         }
     }
 
     [TestCase]
-    public void TryExit_WhenLinkIsStillVisible_DoesNotExit()
+    public async Task Bow_WhenTouched_IsCollectedOnlyOnce()
     {
         // Arrange
-        var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
+        var runner = ISceneRunner.Load(ScenePath);
+        var cellar = runner.Scene();
+
+        var player = cellar.GetNode<Player>("Link");
+
+        var treasure = cellar.GetNode<TreasurePickup>(
+            "Treasure"
         );
-
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
-
-        var link = cellar.GetNode<ColorRect>("Link");
-
-        var exitCount = 0;
-        cellar.ExitRequested += () => exitCount++;
-
-        cellar.Activate();
-
-        // Bottom of the ladder.
-        link.Position = new Vector2(26, 188);
-        AssertBool(cellar.TryExit()).IsFalse();
-
-        // Top of the ladder, still visible.
-        link.Position = new Vector2(26, 64);
-        AssertBool(cellar.TryExit()).IsFalse();
-
-        // One pixel remains visible.
-        link.Position = new Vector2(26, 53);
-        AssertBool(cellar.TryExit()).IsFalse();
-
-        // Above the screen, but not on the ladder.
-        link.Position = new Vector2(48, 52);
-        AssertBool(cellar.TryExit()).IsFalse();
-
-        // Assert
-        AssertBool(exitCount == 0).IsTrue();
-        AssertBool(cellar.IsActive).IsTrue();
-    }
-
-    [TestCase]
-    public void TryExit_WhenLinkLeavesTop_RequestsReturnOnce()
-    {
-        // Arrange
-        var runner = ISceneRunner.Load(
-            "res://Scenes/Cellar.tscn"
-        );
-
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
-
-        var link = cellar.GetNode<ColorRect>("Link");
-
-        var exitCount = 0;
-        cellar.ExitRequested += () => exitCount++;
-
-        cellar.Activate();
-
-        // Link has climbed entirely above the playfield.
-        link.Position = new Vector2(26, 52);
-
-        // Act
-        var firstExit = cellar.TryExit();
-        var secondExit = cellar.TryExit();
-
-        // Assert
-        AssertBool(firstExit).IsTrue();
-        AssertBool(secondExit).IsFalse();
-        AssertBool(exitCount == 1).IsTrue();
-        AssertBool(cellar.IsActive).IsFalse();
-    }
-
-
-    [TestCase]
-    public void Bow_WhenTouched_IsCollectedOnlyOnce()
-    {
-        // Arrange
-        var runner = ISceneRunner.Load(
-            "res://Scenes/ItemCellar.tscn"
-        );
-
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
 
         var state = new DungeonState();
 
-        cellar.Configure(
-            new CellarData
-            {
-                Id = "bow_cellar",
-                Type = "item",
-                ItemId = "bow"
-            },
-            state
+        treasure.Configure(
+            state,
+            "bow_cellar",
+            "bow"
         );
 
-        var link = cellar.GetNode<ColorRect>("Link");
-        var treasure = cellar.GetNode<ColorRect>("Treasure");
-
-        cellar.Activate();
-
-        // Link reaches the Bow
-        link.Position = treasure.Position;
+        player.MovementMode =
+            PlayerMovementMode.SideView;
 
         // Act
-        var firstPickup = cellar.TryCollectTreasure();
-        var secondPickup = cellar.TryCollectTreasure();
+        player.GlobalPosition =
+            treasure.GlobalPosition;
+
+        await runner.SimulateFrames(3);
 
         // Assert
-        AssertBool(firstPickup).IsTrue();
-        AssertBool(secondPickup).IsFalse();
-
         AssertBool(state.HasItem("bow")).IsTrue();
+
         AssertBool(
-            state.IsObjectCollected("bow_cellar", "bow")
+            state.IsObjectCollected(
+                "bow_cellar",
+                "bow"
+            )
         ).IsTrue();
 
         AssertBool(treasure.Visible).IsFalse();
 
-        // The inventory is included in the save data.
         var save = new DungeonSaveData
         {
             DungeonId = "test_dungeon"
@@ -277,14 +225,15 @@ public class CellarSceneTests
 
         state.CopyTo(save);
 
-        AssertBool(save.OwnedItems.Contains("bow")).IsTrue();
+        AssertBool(
+            save.OwnedItems.Contains("bow")
+        ).IsTrue();
     }
-
 
     [TestCase]
     public void Bow_WhenAlreadyOwned_DoesNotReappear()
     {
-        // Arrange - simulate loading a saved game.
+        // Arrange
         var save = new DungeonSaveData
         {
             DungeonId = "test_dungeon",
@@ -295,31 +244,22 @@ public class CellarSceneTests
         var state = new DungeonState();
         state.Restore(save);
 
-        var runner = ISceneRunner.Load(
-            "res://Scenes/ItemCellar.tscn"
+        var runner = ISceneRunner.Load(ScenePath);
+        var cellar = runner.Scene();
+
+        var treasure = cellar.GetNode<TreasurePickup>(
+            "Treasure"
         );
 
-        var cellar = runner.Scene() as Cellar
-            ?? throw new InvalidOperationException(
-                "Failed to load cellar scene."
-            );
-
         // Act
-        cellar.Configure(
-            new CellarData
-            {
-                Id = "bow_cellar",
-                Type = "item",
-                ItemId = "bow"
-            },
-            state
+        treasure.Configure(
+            state,
+            "bow_cellar",
+            "bow"
         );
 
         // Assert
         AssertBool(state.HasItem("bow")).IsTrue();
-
-        AssertBool(
-            cellar.GetNode<ColorRect>("Treasure").Visible
-        ).IsFalse();
+        AssertBool(treasure.Visible).IsFalse();
     }
 }

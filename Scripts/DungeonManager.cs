@@ -17,7 +17,8 @@ public partial class DungeonManager : Node2D
     public PackedScene CellarScene { get; set; } = null!;
 
     [Export]
-    public string DungeonPath { get; set; } = "res://Data/Dungeons/dungeon01.json";
+    public string DungeonPath { get; set; }
+        = "res://Data/Dungeons/dungeon01.json";
 
     private Node2D _rooms = null!;
     private Player _player = null!;
@@ -27,14 +28,18 @@ public partial class DungeonManager : Node2D
     private DungeonState _state = new();
     private DungeonSaveCoordinator? _saveCoordinator;
 
-    private Cellar? _cellar;
+    private CanvasLayer? _cellar;
+    private Player? _cellarPlayer;
+    private Ladder? _exitLadder;
+
     private ColorRect _staircaseFade = null!;
     private string _returnStaircaseId = string.Empty;
 
-
     private RoomData _currentRoom = null!;
     private bool _isTransitioning;
-    private ShutterEntryController _shutterEntryController = null!;
+
+    private ShutterEntryController _shutterEntryController =
+        null!;
 
     public override void _Ready()
     {
@@ -59,16 +64,26 @@ public partial class DungeonManager : Node2D
         }
         catch (Exception exception)
         {
-            GD.PushError($"Failed to load dungeon: {exception}");
+            GD.PushError(
+                $"Failed to load dungeon: {exception}"
+            );
         }
     }
 
     public override void _ExitTree()
     {
         _saveCoordinator?.Dispose();
+
+        if (_exitLadder is not null)
+        {
+            _exitLadder.PlayerExited -=
+                OnEntranceLadderExited;
+        }
     }
 
-    public override void _UnhandledInput(InputEvent @event)
+    public override void _UnhandledInput(
+        InputEvent @event
+    )
     {
         if (!@event.IsActionPressed("save_game"))
         {
@@ -81,12 +96,13 @@ public partial class DungeonManager : Node2D
         }
         catch (Exception exception)
         {
-            GD.PushError($"Failed to save game: {exception}");
+            GD.PushError(
+                $"Failed to save game: {exception}"
+            );
         }
 
         GetViewport().SetInputAsHandled();
     }
-
 
     private void LoadDungeon(string path)
     {
@@ -119,31 +135,33 @@ public partial class DungeonManager : Node2D
             )
         );
 
-        // Restore the state before creating the dungeon rooms.
         _saveCoordinator.Restore();
 
         _shutterEntryController = new ShutterEntryController(
             _state
         );
 
-        // Instantiate the dungeon rooms after restoring state.
         foreach (var roomData in dungeon.Rooms)
         {
             CreateRoom(roomData);
         }
 
-        // Always start at the dungeon's configured entrance.
         _currentRoom = startingRoom;
 
         var origin = GetRoomOrigin(startingRoom);
 
-        _player.Position = origin + new Vector2(128, 88);
+        _player.Position = origin +
+            new Vector2(128, 88);
 
-        _camera.Position = GetCameraPosition(startingRoom);
+        _camera.Position = GetCameraPosition(
+            startingRoom
+        );
+
         _camera.MakeCurrent();
 
         GD.Print(
-            $"Loaded dungeon '{dungeon.Name}' with {dungeon.Rooms.Count} rooms."
+            $"Loaded dungeon '{dungeon.Name}' " +
+            $"with {dungeon.Rooms.Count} rooms."
         );
     }
 
@@ -163,7 +181,9 @@ public partial class DungeonManager : Node2D
         GD.Print($"Created room: {roomData.Id}");
     }
 
-    private static Vector2 GetRoomOrigin(RoomData room)
+    private static Vector2 GetRoomOrigin(
+        RoomData room
+    )
     {
         var origin = DungeonRoomGeometry.GetRoomOrigin(
             room.Position
@@ -172,13 +192,19 @@ public partial class DungeonManager : Node2D
         return new Vector2(origin.X, origin.Y);
     }
 
-    private static Vector2 GetCameraPosition(RoomData room)
+    private static Vector2 GetCameraPosition(
+        RoomData room
+    )
     {
-        var position = DungeonRoomGeometry.GetCameraPosition(
-            room.Position
-        );
+        var position =
+            DungeonRoomGeometry.GetCameraPosition(
+                room.Position
+            );
 
-        return new Vector2(position.X, position.Y);
+        return new Vector2(
+            position.X,
+            position.Y
+        );
     }
 
     public override void _PhysicsProcess(double delta)
@@ -195,7 +221,8 @@ public partial class DungeonManager : Node2D
 
         var origin = GetRoomOrigin(_currentRoom);
 
-        if (_player.Position.X >= origin.X + DungeonRoomGeometry.RoomWidth)
+        if (_player.Position.X >=
+            origin.X + DungeonRoomGeometry.RoomWidth)
         {
             TryTransition("east");
         }
@@ -203,7 +230,8 @@ public partial class DungeonManager : Node2D
         {
             TryTransition("west");
         }
-        else if (_player.Position.Y >= origin.Y + DungeonRoomGeometry.RoomHeight)
+        else if (_player.Position.Y >=
+            origin.Y + DungeonRoomGeometry.RoomHeight)
         {
             TryTransition("south");
         }
@@ -218,24 +246,30 @@ public partial class DungeonManager : Node2D
         foreach (var door in _currentRoom.Doors)
         {
             if (!string.Equals(
-                    door.Direction,
-                    direction,
-                    StringComparison.OrdinalIgnoreCase))
+                door.Direction,
+                direction,
+                StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            if (!_state.IsDoorOpen(_currentRoom.Id, door))
+            if (!_state.IsDoorOpen(
+                _currentRoom.Id,
+                door
+            ))
             {
                 return;
             }
 
-            var destination = _definition.FindRoom(door.Destination);
+            var destination = _definition.FindRoom(
+                door.Destination
+            );
 
             if (destination is null)
             {
                 GD.PushError(
-                    $"Destination room not found: {door.Destination}"
+                    $"Destination room not found: " +
+                    $"{door.Destination}"
                 );
 
                 return;
@@ -248,8 +282,9 @@ public partial class DungeonManager : Node2D
             ))
             {
                 GD.PushError(
-                    $"Room '{destination.Id}' is not adjacent " +
-                    $"to '{_currentRoom.Id}' in direction {direction}."
+                    $"Room '{destination.Id}' is not " +
+                    $"adjacent to '{_currentRoom.Id}' " +
+                    $"in direction {direction}."
                 );
 
                 return;
@@ -260,37 +295,40 @@ public partial class DungeonManager : Node2D
         }
     }
 
-
     private void StartTransition(
         RoomData destination,
         string direction
     )
     {
         var departingRoom = _currentRoom;
-        var entryShutter = _shutterEntryController.PrepareEntry(
-            destination,
-            direction
-        );
+
+        var entryShutter =
+            _shutterEntryController.PrepareEntry(
+                destination,
+                direction
+            );
 
         _isTransitioning = true;
 
-        // Pause player-controlled movement during scrolling.
         _player.SetPhysicsProcess(false);
         _player.Velocity = Vector2.Zero;
 
-        var entryPosition = DungeonRoomGeometry.GetEntryPosition(
-            destination.Position,
-            direction,
-            _player.Position.X,
-            _player.Position.Y
-        );
+        var entryPosition =
+            DungeonRoomGeometry.GetEntryPosition(
+                destination.Position,
+                direction,
+                _player.Position.X,
+                _player.Position.Y
+            );
 
         var playerTarget = new Vector2(
             entryPosition.X,
             entryPosition.Y
         );
 
-        var cameraTarget = GetCameraPosition(destination);
+        var cameraTarget = GetCameraPosition(
+            destination
+        );
 
         var tween = CreateTween();
 
@@ -313,7 +351,6 @@ public partial class DungeonManager : Node2D
 
         tween.Finished += () =>
         {
-            // The player has finished leaving the old room.
             var previousRoom = _rooms.GetNode<Room>(
                 departingRoom.Id
             );
@@ -332,10 +369,11 @@ public partial class DungeonManager : Node2D
 
             _isTransitioning = false;
 
-            GD.Print($"Entered room: {destination.Id}");
+            GD.Print(
+                $"Entered room: {destination.Id}"
+            );
         };
     }
-
 
     private void CreateStaircaseFade()
     {
@@ -351,7 +389,8 @@ public partial class DungeonManager : Node2D
             Size = new Vector2(256, 176),
             Color = Colors.Black,
             Modulate = new Color(1, 1, 1, 0),
-            MouseFilter = Control.MouseFilterEnum.Ignore
+            MouseFilter =
+                Control.MouseFilterEnum.Ignore
         };
 
         layer.AddChild(_staircaseFade);
@@ -365,8 +404,6 @@ public partial class DungeonManager : Node2D
     {
         var tween = CreateTween();
 
-        // Four discrete brightness steps approximate
-        // the original NES palette transition.
         for (var step = 1; step <= 4; step++)
         {
             var alpha = fadeToBlack
@@ -378,7 +415,10 @@ public partial class DungeonManager : Node2D
             tween.TweenCallback(Callable.From(() =>
             {
                 _staircaseFade.Modulate = new Color(
-                    1, 1, 1, alpha
+                    1,
+                    1,
+                    1,
+                    alpha
                 );
             }));
         }
@@ -404,15 +444,35 @@ public partial class DungeonManager : Node2D
 
         if (CellarScene is null)
         {
-            GD.PushError("Cellar scene has not been assigned.");
+            GD.PushError(
+                "Cellar scene has not been assigned."
+            );
+
             return;
         }
 
-        var cellarData = _definition.FindCellar(cellarId);
+        var cellarData =
+            _definition.FindCellar(cellarId);
 
         if (cellarData is null)
         {
-            GD.PushError($"Cellar '{cellarId}' was not found.");
+            GD.PushError(
+                $"Cellar '{cellarId}' was not found."
+            );
+
+            return;
+        }
+
+        if (!string.Equals(
+                cellarData.Type,
+                "item",
+                StringComparison.OrdinalIgnoreCase) ||
+            string.IsNullOrWhiteSpace(cellarData.ItemId))
+        {
+            GD.PushError(
+                $"Unsupported item cellar: '{cellarId}'."
+            );
+
             return;
         }
 
@@ -424,63 +484,120 @@ public partial class DungeonManager : Node2D
 
         FadeStaircase(true, () =>
         {
-            // Switch scenes only after the playfield is black.
             _player.Hide();
 
-            _cellar = CellarScene.Instantiate<Cellar>();
+            _cellar =
+                CellarScene.Instantiate<CanvasLayer>();
+
             _cellar.Name = "Cellar";
 
             AddChild(_cellar);
 
-            _cellar.Configure(cellarData, _state);
-            _cellar.ExitRequested += OnCellarExitRequested;
+            _cellarPlayer =
+                _cellar.GetNode<Player>("Link");
+
+            _cellarPlayer.SetPhysicsProcess(false);
+
+            _cellarPlayer.MovementMode =
+                PlayerMovementMode.SideView;
+
+            _exitLadder =
+                _cellar.GetNode<Ladder>(
+                    "LeftLadderTrigger"
+                );
+
+            _exitLadder.PlayerExited +=
+                OnEntranceLadderExited;
+
+            var treasure =
+                _cellar.GetNode<TreasurePickup>(
+                    "Treasure"
+                );
+
+            treasure.Configure(
+                _state,
+                cellarData.Id,
+                cellarData.ItemId!
+            );
+
+            _cellarPlayer.SpawnAtLadder(_exitLadder);
 
             FadeStaircase(false, () =>
             {
                 _isTransitioning = false;
-                _cellar.Activate();
+
+                _cellarPlayer?.SetPhysicsProcess(
+                    true
+                );
             });
         });
     }
 
+    private void OnEntranceLadderExited(
+        Player player,
+        LadderExitDirection direction
+    )
+    {
+        if (direction != LadderExitDirection.Top ||
+            player != _cellarPlayer)
+        {
+            return;
+        }
+
+        OnCellarExitRequested();
+    }
+
     private void OnCellarExitRequested()
     {
-        if (_isTransitioning || _cellar is null)
+        if (_isTransitioning ||
+            _cellar is null ||
+            _cellarPlayer is null)
         {
             return;
         }
 
         _isTransitioning = true;
-        _cellar.Deactivate();
+
+        _cellarPlayer.SetPhysicsProcess(false);
+        _cellarPlayer.Velocity = Vector2.Zero;
+
+        if (_exitLadder is not null)
+        {
+            _exitLadder.PlayerExited -=
+                OnEntranceLadderExited;
+        }
 
         FadeStaircase(true, () =>
         {
-            _cellar.ExitRequested -= OnCellarExitRequested;
             _cellar.QueueFree();
+
             _cellar = null;
+            _cellarPlayer = null;
+            _exitLadder = null;
 
-            var room = _rooms.GetNode<Room>(_currentRoom.Id);
-
-            var staircaseData = _currentRoom.Objects.Find(
-                obj => string.Equals(
-                    obj.Id,
-                    _returnStaircaseId,
-                    StringComparison.OrdinalIgnoreCase
-                ) &&
-                string.Equals(
-                    obj.Type,
-                    "staircase",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            ) ?? throw new InvalidOperationException(
-                $"Return staircase '{_returnStaircaseId}' not found."
+            var room = _rooms.GetNode<Room>(
+                _currentRoom.Id
             );
 
-            // Leaving the cellar resets temporary room puzzles.
+            var staircaseData =
+                _currentRoom.Objects.Find(
+                    obj => string.Equals(
+                        obj.Id,
+                        _returnStaircaseId,
+                        StringComparison.OrdinalIgnoreCase
+                    ) &&
+                    string.Equals(
+                        obj.Type,
+                        "staircase",
+                        StringComparison.OrdinalIgnoreCase
+                    )
+                ) ?? throw new InvalidOperationException(
+                    $"Return staircase " +
+                    $"'{_returnStaircaseId}' not found."
+                );
+
             room.ResetTemporaryState();
 
-            // Return slightly below the staircase so Link
-            // doesn't immediately enter it again.
             var returnPosition = new Vector2(
                 staircaseData.X * 16 + 8,
                 staircaseData.Y * 16 + 8 + 20
@@ -500,5 +617,4 @@ public partial class DungeonManager : Node2D
             });
         });
     }
-
 }
